@@ -44,3 +44,12 @@
 * **Why Not Alternatives**:
   - *Alternative 1 (Leaving particles unmanaged)*: Rejected due to hierarchy bloat.
   - *Alternative 2 (Complex Object Pooling)*: Deferred until full release optimization phase to keep prototype particle lifecycle simple.
+
+## 6. Unity Gaming Services (UGS) Core Initialization Refactor
+
+* **What Changed**: Refactored `RelayManager.cs` to add an asynchronous `InitializeServicesAsync()` initialization routine.
+* **Why**: `RelayService` and `AuthenticationService` calls threw runtime exceptions because `UnityServices.InitializeAsync(options)` was never invoked prior to requesting Relay allocations or anonymous sign-in.
+* **How**: `RelayManager.cs` now checks `UnityServices.State`, calls `await UnityServices.InitializeAsync(options)`, signs in anonymously via `AuthenticationService`, and guards both `CreateRelay()` and `JoinRelay()` methods.
+* **Why Not Alternatives**:
+  - *Alternative 1 (Calling InitializeAsync inline inside CreateRelay only)*: Rejected because `Start()` would still throw when checking authentication state on scene start.
+  - *Alternative 2 (Manual Editor setup script)*: Rejected because automated runtime initialization ensures seamless gameplay in standalone builds and ParrelSync clones.

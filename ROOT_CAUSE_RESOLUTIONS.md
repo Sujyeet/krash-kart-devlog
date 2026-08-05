@@ -50,3 +50,13 @@
 * **Root Cause Analysis**: `InputData` is a value-type C# struct on `ArcadeKart`, making `kartController.Input == null` invalid syntax.
 * **Resolution Strategy**: Updated line 56 in `KartAnimation.cs` to check `if (kartController == null) return;`.
 * **Verification Method**: Verified error-free compilation in Unity Editor.
+
+## 7. Relay Core Registry Uninitialized Failure on Multiplayer Host
+
+* **Issue Description**: Clicking "Host Multiplayer" threw runtime exceptions: `[Relay] Failed to initialize: Singleton is not initialized. Please call UnityServices.InitializeAsync() to initialize.` followed by `[Relay] Failed to create: Attempting to call Relay Services requires initializing Core Registry. Call 'UnityServices.InitializeAsync' first!`.
+* **Root Cause Analysis**: `RelayManager.cs` initialized `InitializationOptions` but omitted the mandatory `await UnityServices.InitializeAsync(options)` call before attempting `AuthenticationService.Instance.SignInAnonymouslyAsync()` and `RelayService.Instance.CreateAllocationAsync(4)`.
+* **Resolution Strategy**: 
+  - Restructured service initialization in `RelayManager.cs` into an async `InitializeServicesAsync()` method that explicitly calls `await UnityServices.InitializeAsync(options)`.
+  - Added re-entrancy and state checks (`UnityServices.State == ServicesInitializationState.Initialized`).
+  - Guarded `CreateRelay()` and `JoinRelay()` with `await InitializeServicesAsync()` before executing allocation network calls.
+* **Verification Method**: Verified code flow so `UnityServices` initializes prior to authentication and Relay allocation requests.
