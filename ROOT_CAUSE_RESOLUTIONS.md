@@ -107,3 +107,12 @@
   - Adjusted `GroundAirbourne` threshold to `AirPercent >= 0.75f` (true jumps only).
   - Balanced base `TopSpeed` to 13.5 and `Acceleration` to 4.5.
 * **Verification Method**: Verified karts smoothly drive over speedbumps and curbs without beaching or bottoming out.
+
+## 14. Premature Win Triggered by AI Bots Crossing Lap Triggers
+
+* **Issue Description**: The game ended prematurely in under a minute with "You Won" even when the human player had not completed the required laps or sat at the starting line.
+* **Root Cause Analysis**: `LapObject.cs` triggered `Objective.OnUnregisterPickup` whenever ANY kart crossed the trigger collider. AI bots (`KartAgent`) racing around the track were continuously triggering the human player's shared lap objective, accumulating lap counts on behalf of the player.
+* **Resolution Strategy**:
+  - Added an explicit AI agent filter in `LapObject.cs`: `if (kart.GetComponent<KartGame.AI.KartAgent>() != null) return;`.
+  - Added `lapsToComplete = Mathf.Max(1, lapsToComplete)` guard and synchronized `MultiplayerRaceManager.lapsToComplete` in `ObjectiveCompleteLaps.cs`.
+* **Verification Method**: Verified that AI bot line crossings are ignored by the human player's lap objective, and the race only finishes when the human player actually completes the configured laps.
