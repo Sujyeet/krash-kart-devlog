@@ -87,8 +87,8 @@ namespace KartGame.KartSystems
         // Base stats for Local Kart (non-networked) and Remote Karts (networked). 
         public ArcadeKart.Stats baseStats = new ArcadeKart.Stats
         {
-            TopSpeed = 16f,
-            Acceleration = 5f,
+            TopSpeed = 13.5f,
+            Acceleration = 4.5f,
             AccelerationCurve = 0.7f,
             Braking = 10f,
             ReverseAcceleration = 4f,
@@ -96,8 +96,8 @@ namespace KartGame.KartSystems
             Steer = 5.5f,
             CoastingDrag = 1.5f,
             Grip = 0.80f,
-            AddedGravity = 12f,
-            Weight = 1000f,
+            AddedGravity = 6f,
+            Weight = 250f,
         };
 
         [Header("Vehicle Visual")] 
@@ -491,8 +491,7 @@ namespace KartGame.KartSystems
 
         void GroundAirbourne()
         {
-           
-            if (AirPercent >= 0.25f)
+            if (AirPercent >= 0.75f)
             {
                 Rigidbody.velocity += Physics.gravity * Time.fixedDeltaTime * m_FinalStats.AddedGravity;
             }

@@ -393,7 +393,6 @@ namespace KartGame.AI
                 return;
             var direction = (nextCollider.transform.position - m_Kart.transform.position).normalized;
             sensor.AddObservation(Vector3.Dot(m_Kart.Rigidbody.velocity.normalized, direction));
-            sensor.AddObservation(IsOnStraightSegment() ? 1f : 0f);
             if (ShowRayCasts)
                 Debug.DrawLine(AgentSensorTransform.position, nextCollider.transform.position, Color.magenta);
             m_LastAccumulatedReward = 0.0f;

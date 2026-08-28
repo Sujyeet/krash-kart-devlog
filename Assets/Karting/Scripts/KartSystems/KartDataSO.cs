@@ -14,8 +14,8 @@ namespace KartGame.KartSystems
         [Tooltip("Base movement stats defining handling, speed, acceleration, braking, and mass.")]
         public ArcadeKart.Stats stats = new ArcadeKart.Stats
         {
-            TopSpeed = 16f,
-            Acceleration = 5f,
+            TopSpeed = 13.5f,
+            Acceleration = 4.5f,
             AccelerationCurve = 0.7f,
             Braking = 10f,
             ReverseAcceleration = 4f,
@@ -23,8 +23,8 @@ namespace KartGame.KartSystems
             Steer = 5.5f,
             CoastingDrag = 1.5f,
             Grip = 0.80f,
-            AddedGravity = 12f,
-            Weight = 1000f
+            AddedGravity = 6f,
+            Weight = 250f
         };
 
         [Header("Drift Configuration")]

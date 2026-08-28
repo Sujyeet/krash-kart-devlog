@@ -88,3 +88,22 @@
 * **Root Cause Analysis**: `GameFlowManager.CountdownThenStartRaceRoutine` had `yield return new WaitForSeconds(0f)`.
 * **Resolution Strategy**: Synchronized race start routine to wait for `raceCountdownTrigger.duration` before invoking `StartRace()`.
 * **Verification Method**: Confirmed karts remain locked with `SetCanMove(false)` until countdown concludes.
+
+## 12. ML-Agents Vector Observation Truncation Warning Flood
+
+* **Issue Description**: Unity Console flooded with hundreds of warnings per second: `More observations (13) made than vector observation size (12). The observations will be truncated.`
+* **Root Cause Analysis**: `KartAgent.CollectObservations` was pushing 13 floats (including an extra `IsOnStraightSegment` observation) into a VectorSensor expecting 12 floats matching the trained neural network model.
+* **Resolution Strategy**: Removed the unmodeled 13th observation to align with the 12-dimension trained neural network input schema.
+* **Verification Method**: Confirmed console warning flood ceased completely.
+
+## 13. Suspension Bottoming Out and Speedbreaker High-Centering
+
+* **Issue Description**: Karts felt excessively fast yet got high-centered and stuck in the middle of track speedbumps and curbs.
+* **Root Cause Analysis**: 
+  - `Rigidbody.mass` was set to 1000kg in `ArcadeKart.Awake()`, overpowering the 30,000 N/m suspension springs and 12x gravity multiplier (`1000 * 9.81 * 12 = 117,720 N`).
+  - `GroundAirbourne()` triggered downward airborne gravity at `AirPercent >= 0.25f` (slamming the chassis down whenever a single wheel lifted over a speedbump).
+* **Resolution Strategy**:
+  - Calibrated default `Weight` to 250kg matching the prefab's suspension spring rating.
+  - Adjusted `GroundAirbourne` threshold to `AirPercent >= 0.75f` (true jumps only).
+  - Balanced base `TopSpeed` to 13.5 and `Acceleration` to 4.5.
+* **Verification Method**: Verified karts smoothly drive over speedbumps and curbs without beaching or bottoming out.
