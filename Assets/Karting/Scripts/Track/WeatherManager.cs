@@ -103,10 +103,17 @@ namespace KartGame.Track
             TopSpeedMultiplier = 0.85f
         };
 
+        [Header("Transition Settings")]
+        [Tooltip("Duration in seconds to smoothly blend physics attributes when weather changes mid-race.")]
+        [SerializeField] private float transitionDuration = 4.0f;
+
+        private WeatherModifiers currentInterpolatedModifiers;
+        private WeatherModifiers targetModifiers;
+
         public static event Action<WeatherType, WeatherModifiers> OnWeatherChanged;
 
         public WeatherType CurrentWeather => currentWeather;
-        public WeatherModifiers CurrentModifiers => GetModifiers(currentWeather);
+        public WeatherModifiers CurrentModifiers => currentInterpolatedModifiers;
 
         private void Awake()
         {
@@ -116,6 +123,9 @@ namespace KartGame.Track
                 return;
             }
             Instance = this;
+
+            targetModifiers = GetModifiers(currentWeather);
+            currentInterpolatedModifiers = targetModifiers;
         }
 
         private void OnDestroy()
@@ -126,12 +136,29 @@ namespace KartGame.Track
             }
         }
 
-        public void SetWeather(WeatherType newWeather)
+        private void Update()
+        {
+            float step = Time.deltaTime / Mathf.Max(0.1f, transitionDuration);
+
+            currentInterpolatedModifiers.AccelerationMultiplier = Mathf.MoveTowards(currentInterpolatedModifiers.AccelerationMultiplier, targetModifiers.AccelerationMultiplier, step);
+            currentInterpolatedModifiers.BrakingMultiplier = Mathf.MoveTowards(currentInterpolatedModifiers.BrakingMultiplier, targetModifiers.BrakingMultiplier, step);
+            currentInterpolatedModifiers.SteeringMultiplier = Mathf.MoveTowards(currentInterpolatedModifiers.SteeringMultiplier, targetModifiers.SteeringMultiplier, step);
+            currentInterpolatedModifiers.GripMultiplier = Mathf.MoveTowards(currentInterpolatedModifiers.GripMultiplier, targetModifiers.GripMultiplier, step);
+            currentInterpolatedModifiers.TopSpeedMultiplier = Mathf.MoveTowards(currentInterpolatedModifiers.TopSpeedMultiplier, targetModifiers.TopSpeedMultiplier, step);
+        }
+
+        public void SetWeather(WeatherType newWeather, bool instant = false)
         {
             currentWeather = newWeather;
-            WeatherModifiers modifiers = GetModifiers(newWeather);
-            Debug.Log($"[WeatherManager] Weather updated to {newWeather}");
-            OnWeatherChanged?.Invoke(newWeather, modifiers);
+            targetModifiers = GetModifiers(newWeather);
+
+            if (instant)
+            {
+                currentInterpolatedModifiers = targetModifiers;
+            }
+
+            Debug.Log($"[WeatherManager] Weather transitioning to {newWeather} (Blend Time: {(instant ? 0f : transitionDuration)}s)");
+            OnWeatherChanged?.Invoke(newWeather, targetModifiers);
         }
 
         public WeatherModifiers GetModifiers(WeatherType weather)
