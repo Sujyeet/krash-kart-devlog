@@ -113,6 +113,13 @@
 * **Issue Description**: The game ended prematurely in under a minute with "You Won" even when the human player had not completed the required laps or sat at the starting line.
 * **Root Cause Analysis**: `LapObject.cs` triggered `Objective.OnUnregisterPickup` whenever ANY kart crossed the trigger collider. AI bots (`KartAgent`) racing around the track were continuously triggering the human player's shared lap objective, accumulating lap counts on behalf of the player.
 * **Resolution Strategy**:
-  - Added an explicit AI agent filter in `LapObject.cs`: `if (kart.GetComponent<KartGame.AI.KartAgent>() != null) return;`.
+  - Added an explicit AI agent filter in `LapObject.cs`: `if (kart.GetComponent("KartAgent") != null) return;`.
   - Added `lapsToComplete = Mathf.Max(1, lapsToComplete)` guard and synchronized `MultiplayerRaceManager.lapsToComplete` in `ObjectiveCompleteLaps.cs`.
 * **Verification Method**: Verified that AI bot line crossings are ignored by the human player's lap objective, and the race only finishes when the human player actually completes the configured laps.
+
+## 15. Cross-Assembly Compilation Error in LapObject
+
+* **Issue Description**: C# compilation failed with `error CS0234: The type or namespace name 'AI' does not exist in the namespace 'KartGame'`.
+* **Root Cause Analysis**: `LapObject.cs` resides in `KartGame.asmdef`, which does not have a compile-time assembly reference to `KartGame.AI.asmdef`.
+* **Resolution Strategy**: Replaced direct generic type query with decoupled string-based component lookup `kart.GetComponent("KartAgent") != null`.
+* **Verification Method**: Verified zero compiler errors via Unity MCP and clean assembly build.

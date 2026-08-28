@@ -31,8 +31,8 @@ public class LapObject : TargetObject
         ArcadeKart kart = other.GetComponentInParent<ArcadeKart>();
         if (kart == null) return;
 
-        // CRITICAL FIX: Ignore AI bots (KartAgent) - AI agents track checkpoints internally
-        if (kart.GetComponent<KartGame.AI.KartAgent>() != null)
+        // CRITICAL FIX: Ignore AI bots (KartAgent) - decoupled check across asmdef boundaries
+        if (kart.GetComponent("KartAgent") != null)
             return;
 
         // Verify this is a kart we own (locally controlled) in multiplayer
