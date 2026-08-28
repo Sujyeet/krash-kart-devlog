@@ -53,3 +53,27 @@
 * **Why Not Alternatives**:
   - *Alternative 1 (Calling InitializeAsync inline inside CreateRelay only)*: Rejected because `Start()` would still throw when checking authentication state on scene start.
   - *Alternative 2 (Manual Editor setup script)*: Rejected because automated runtime initialization ensures seamless gameplay in standalone builds and ParrelSync clones.
+
+## 7. Modular Kart Attribute Data Schema (KartDataSO)
+
+* **What Changed**: Created `KartDataSO.cs` asset definition and integrated it into `ArcadeKart.cs`. Added `Weight` stat to `ArcadeKart.Stats`. Removed hardcoded player speed scaling in `ArcadeKart.Start()`.
+* **Why**: Support diverse kart archetypes (Light/Agile, Medium/Balanced, Heavy/Brawler) with modular ScriptableObject assets instead of hardcoded inspector fields.
+* **How**: `ArcadeKart.Awake()` checks if `kartData` is assigned and applies base stats, drift grip, additional steering, and Rigidbody mass from the ScriptableObject.
+* **Why Not Alternatives**:
+  - *Alternative 1 (Hardcoding stats inside distinct MonoBehaviour subclasses)*: Rejected due to prefab bloat and code duplication. ScriptableObjects allow data-driven tuning without recompiling.
+
+## 8. Environmental Weather Modifier Engine
+
+* **What Changed**: Created `WeatherManager.cs` supporting 6 weather conditions (`DryNormal`, `DryHeat`, `RainLightDrizzle`, `RainHeavyPour`, `SnowVisibleTrack`, `SnowFullSnow`).
+* **Why**: Modulate gameplay physics (Acceleration, Braking, Steering, Grip, Top Speed) dynamically depending on track environmental conditions.
+* **How**: `ArcadeKart.TickPowerups()` evaluates active `WeatherModifiers` and scales calculated final stats per physics frame.
+* **Why Not Alternatives**:
+  - *Alternative 1 (Physics Material swap on track mesh)*: Rejected because WheelColliders in this project use raycast-driven custom arcade physics where friction is computed in C#, not Unity PhysX materials.
+
+## 9. Spell Catalog and Draft Pipeline (PowerupDraftManager)
+
+* **What Changed**: Created `PowerupDraftManager.cs` and added `description` / `icon` metadata fields to `BaseSpell.cs`.
+* **Why**: Enable draft screen game flow, power-up catalog queries, and dynamic equipping of spells to kart slots at runtime.
+* **How**: Implemented `GetAllSpells()`, `GenerateDraftOptions(count)`, and `EquipSpellToKart(kart, spellPrefab, slotIndex)` supporting runtime spell instantiation and slot replacement.
+* **Why Not Alternatives**:
+  - *Alternative 1 (Hardcoding 4 spells per kart prefab)*: Rejected because draft mechanics require flexible runtime spell assignment.

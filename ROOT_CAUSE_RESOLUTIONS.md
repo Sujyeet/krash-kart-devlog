@@ -60,3 +60,31 @@
   - Added re-entrancy and state checks (`UnityServices.State == ServicesInitializationState.Initialized`).
   - Guarded `CreateRelay()` and `JoinRelay()` with `await InitializeServicesAsync()` before executing allocation network calls.
 * **Verification Method**: Verified code flow so `UnityServices` initializes prior to authentication and Relay allocation requests.
+
+## 8. Hot-Loop Component Query Overhead in ArcadeKart
+
+* **Issue Description**: `GetComponent<NetworkObject>()` and `GetComponent<NetworkedKartAnimState>()` were invoked every frame in `Update()` and every tick in `FixedUpdate()`, producing unnecessary CPU overhead.
+* **Root Cause Analysis**: Missing cached member variables for network components in `ArcadeKart.cs`.
+* **Resolution Strategy**: Cached `m_CachedNetObj` and `m_CachedAnimState` during `Awake()`, eliminating all hot-loop component queries.
+* **Verification Method**: Verified zero per-frame `GetComponent` invocations during gameplay profile checks.
+
+## 9. Jump Landing VFX Lifetime Leak
+
+* **Issue Description**: Every kart landing instantiated `JumpVFX` without lifetime destruction, accumulating orphan GameObjects in the scene hierarchy.
+* **Root Cause Analysis**: `Instantiate(JumpVFX, transform.position, Quaternion.identity)` had no accompanying `Destroy` call.
+* **Resolution Strategy**: Added `Destroy(jumpInstance, 3f)` immediately following instantiation.
+* **Verification Method**: Confirmed that jump landing particle instances are automatically cleaned up 3 seconds after spawning.
+
+## 10. Static Delegate Memory Leak Across Domain Reloads
+
+* **Issue Description**: `GameModeManager.OnAgentFinishedRace` static action delegate accumulated stale references across scene and domain reloads.
+* **Root Cause Analysis**: Static event delegates in Unity survive scene transitions and domain reloads unless explicitly reset.
+* **Resolution Strategy**: Added `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]` in `GameModeManager.cs` to clear delegates automatically.
+* **Verification Method**: Verified delegate is null on fresh run initialization.
+
+## 11. Race Countdown Timing Bypass
+
+* **Issue Description**: Karts were able to move immediately upon level load while the race countdown animation was still playing.
+* **Root Cause Analysis**: `GameFlowManager.CountdownThenStartRaceRoutine` had `yield return new WaitForSeconds(0f)`.
+* **Resolution Strategy**: Synchronized race start routine to wait for `raceCountdownTrigger.duration` before invoking `StartRace()`.
+* **Verification Method**: Confirmed karts remain locked with `SetCanMove(false)` until countdown concludes.

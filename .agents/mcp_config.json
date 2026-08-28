@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "unityMCP": {
+      "serverUrl": "http://127.0.0.1:8080/mcp",
+      "type": "http",
+      "disabled": false
+    },
+    "openrouter-models": {
+      "args": [
+        "C:\\Users\\sujit\\.gemini\\antigravity-ide\\mcp-servers\\openrouter-models\\server.py"
+      ],
+      "env": {
+        "OPENROUTER_API_KEY": "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"
+      },
+      "command": "python"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+# Unity Project Guidelines
+
+## Code Style & Formatting
+- Language: C# (Unity 2022.3+ compatible)
+- Naming Conventions: Use PascalCase for methods/classes, camelCase for local variables/private fields.
+- Access Modifiers: Always explicitly state 'private', 'protected', or 'public'.
+- Architecture Style: Use MonoBehavior Singletons for global managers. Use ScriptableObjects for data-driven systems.
+
+## Unity Specifics
+- Always use cached component references (do not call GetComponent inside Update).
+- Use Vector3.MoveTowards or Lerp with Time.deltaTime for smooth movement.
+- Keep UI separate from gameplay logic using event-driven communication (Actions/UnityEvents).
