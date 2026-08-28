@@ -22,16 +22,16 @@ namespace KartGame.Editor
             window.Show();
         }
 
-        [MenuItem("Scenes/1. IntroMenu %&1", false, 20)]
+        [MenuItem("Scenes/1. IntroMenu &i", false, 20)]
         public static void SwitchToIntroMenu() => LoadScene(IntroScenePath);
 
-        [MenuItem("Scenes/2. MainScene %&2", false, 21)]
+        [MenuItem("Scenes/2. MainScene &m", false, 21)]
         public static void SwitchToMainScene() => LoadScene(MainScenePath);
 
-        [MenuItem("Scenes/3. WinScene %&3", false, 22)]
+        [MenuItem("Scenes/3. WinScene", false, 22)]
         public static void SwitchToWinScene() => LoadScene(WinScenePath);
 
-        [MenuItem("Scenes/4. LoseScene %&4", false, 23)]
+        [MenuItem("Scenes/4. LoseScene", false, 23)]
         public static void SwitchToLoseScene() => LoadScene(LoseScenePath);
 
         private void OnGUI()
