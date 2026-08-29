@@ -653,9 +653,11 @@ namespace KartGame.KartSystems
                     }
                 }
 
-           
+                // Keep grip current with weather changes during normal driving
                 if (!IsDrifting)
                 {
+                    m_CurrentGrip = m_FinalStats.Grip;
+
                     if ((WantsToDrift || isBraking) && currentSpeed > maxSpeed * MinSpeedPercentToFinishDrift)
                     {
                         IsDrifting = true;
@@ -712,7 +714,8 @@ namespace KartGame.KartSystems
                     if (turnInputAbs < k_NullInput)
                         m_DriftTurningPower = Mathf.MoveTowards(m_DriftTurningPower, 0.0f, Mathf.Clamp01(DriftDampening * Time.fixedDeltaTime));
 
-                    float driftMaxSteerValue = m_FinalStats.Steer + DriftAdditionalSteer;
+                    // ponytail: use baseStats.Steer for drift clamp to prevent weather steer reduction from shrinking drift range
+                    float driftMaxSteerValue = baseStats.Steer + DriftAdditionalSteer;
                     m_DriftTurningPower = Mathf.Clamp(m_DriftTurningPower + (turnInput * Mathf.Clamp01(DriftControl * Time.fixedDeltaTime)), -driftMaxSteerValue, driftMaxSteerValue);
 
                     bool facingVelocity = Vector3.Dot(Rigidbody.velocity.normalized, transform.forward * Mathf.Sign(accelInput)) > Mathf.Cos(MinAngleToFinishDrift * Mathf.Deg2Rad);
