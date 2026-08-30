@@ -24,23 +24,39 @@ namespace KartGame.Editor
                 container = Undo.AddComponent<SplineContainer>(splineObj);
             }
 
-            // Ensure SplineExtrude component exists
-            SplineExtrude extrude = splineObj.GetComponent<SplineExtrude>();
-            if (extrude == null)
+            // Remove legacy tube SplineExtrude if present
+            SplineExtrude oldExtrude = splineObj.GetComponent<SplineExtrude>();
+            if (oldExtrude != null)
             {
-                extrude = Undo.AddComponent<SplineExtrude>(splineObj);
+                Undo.DestroyObjectImmediate(oldExtrude);
             }
 
-            // Configure SplineExtrude for wide road
-            extrude.Radius = 7.0f; // 14 units total road width
-            extrude.SegmentsPerUnit = 2; // Smooth curve interpolation
+            // Add our flat road generator component
+            KartGame.Track.SplineRoadGenerator roadGen = splineObj.GetComponent<KartGame.Track.SplineRoadGenerator>();
+            if (roadGen == null)
+            {
+                roadGen = Undo.AddComponent<KartGame.Track.SplineRoadGenerator>(splineObj);
+            }
+
+            roadGen.roadWidth = 14.0f; // 14 units wide flat road
+            roadGen.curbWidth = 0.8f;
+            roadGen.curbHeight = 0.25f;
+            roadGen.skirtDepth = 0.6f;
+            roadGen.resolution = 400;
+
+            // Load track material if available
+            Material roadMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Karting/ModularTrackKit/Materials/Modular_Track_Road.mat");
+            if (roadMat != null)
+            {
+                roadGen.roadMaterial = roadMat;
+            }
 
             // Add MeshCollider if missing
             MeshCollider collider = splineObj.GetComponent<MeshCollider>();
             if (collider == null)
             {
                 collider = Undo.AddComponent<MeshCollider>(splineObj);
-                collider.convex = false; // Static track collider works great non-convex when static
+                collider.convex = false; // Static road collider
             }
 
             Spline spline = container.Spline;
@@ -88,7 +104,7 @@ namespace KartGame.Editor
             }
 
             spline.Closed = true;
-            extrude.Rebuild();
+            roadGen.GenerateRoadMesh();
 
             // Snap player kart to Start line
             GameObject kart = GameObject.Find("KartClassic_MLAgent");
