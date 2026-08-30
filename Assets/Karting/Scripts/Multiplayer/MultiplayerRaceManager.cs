@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
+using KartGame.GameFlow; // Added namespace
+using KartGame.KartSystems;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using KartGame.KartSystems;
-using KartGame.GameFlow; // Added namespace
+using UnityEngine.UI;
 
 namespace KartGame.Multiplayer
 {
@@ -157,8 +157,9 @@ namespace KartGame.Multiplayer
         private void FinishRace()
         {
             Debug.Log("Local player finished the race!");
-            
+
             // Disable kart movement
+
             var localKart = FindLocalPlayerKart();
             if (localKart != null)
             {

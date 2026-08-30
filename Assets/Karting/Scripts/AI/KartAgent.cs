@@ -1,7 +1,7 @@
 using KartGame.KartSystems;
 using Unity.MLAgents;
-using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
+using Unity.MLAgents.Sensors;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -135,11 +135,12 @@ namespace KartGame.AI
         #endregion
 
         #region Debugging
-        [Header("Debug Option")] [Tooltip("Should we visualize the rays that the agent draws?")]
+        [Header("Debug Option")]
+        [Tooltip("Should we visualize the rays that the agent draws?")]
         public bool ShowRayCasts;
         #endregion
 
-        
+
 
         // Core variables
         ArcadeKart m_Kart;
@@ -172,14 +173,14 @@ namespace KartGame.AI
             rb.mass = 1200f;
             rb.centerOfMass = new Vector3(0, -0.4f, 0.1f);
             ValidateCollisionSetup();
-            
-             // TIME SCALE ADJUSTMENT 
-    if (Mathf.Approximately(Time.timeScale, 1.0f))
-    {
-        Time.timeScale = 1.3f;
-        Debug.Log("Game speed set to 1.5x by " + gameObject.name);
-    }
-    
+
+            // TIME SCALE ADJUSTMENT 
+            if (Mathf.Approximately(Time.timeScale, 1.0f))
+            {
+                Time.timeScale = 1.3f;
+                Debug.Log("Game speed set to 1.5x by " + gameObject.name);
+            }
+
         }
 
         void ValidateCollisionSetup()

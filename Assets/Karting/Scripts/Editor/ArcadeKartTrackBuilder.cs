@@ -1,4 +1,4 @@
-#if UNITY_EDITOR
+﻿#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Splines;
@@ -38,25 +38,31 @@ namespace KartGame.Editor
                 roadGen = Undo.AddComponent<KartGame.Track.SplineRoadGenerator>(splineObj);
             }
 
-            roadGen.roadWidth = 14.0f; // 14 units wide flat road
-            roadGen.curbWidth = 0.8f;
-            roadGen.curbHeight = 0.25f;
-            roadGen.skirtDepth = 0.6f;
-            roadGen.resolution = 400;
+            roadGen.roadWidth = 14.0f;
+            roadGen.generateCurbs = true;
+            roadGen.curbWidth = 1.0f;
+            roadGen.curbHeight = 0.22f;
+            roadGen.skirtDepth = 0.8f;
+            roadGen.resolution = 450;
+            roadGen.uvTileLength = 8.0f;
 
-            // Load track material if available
+            // Load materials
             Material roadMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Karting/ModularTrackKit/Materials/Modular_Track_Road.mat");
-            if (roadMat != null)
-            {
-                roadGen.roadMaterial = roadMat;
-            }
+            if (roadMat != null) roadGen.roadMaterial = roadMat;
+
+            Material curbMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Karting/Art/Materials/Props/Pin_Red.mat");
+            if (curbMat == null) curbMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Karting/ModularTrackKit/Materials/Modular_Track_Lane_Divider.mat");
+            if (curbMat != null) roadGen.curbMaterial = curbMat;
+
+            Material skirtMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Karting/Art/Materials/Level/Ground.mat");
+            if (skirtMat != null) roadGen.skirtMaterial = skirtMat;
 
             // Add MeshCollider if missing
             MeshCollider collider = splineObj.GetComponent<MeshCollider>();
             if (collider == null)
             {
                 collider = Undo.AddComponent<MeshCollider>(splineObj);
-                collider.convex = false; // Static road collider
+                collider.convex = false;
             }
 
             Spline spline = container.Spline;
@@ -108,6 +114,7 @@ namespace KartGame.Editor
 
             // Snap player kart to Start line
             GameObject kart = GameObject.Find("KartClassic_MLAgent");
+            if (kart == null) kart = GameObject.Find("KartClassic_Player");
             if (kart != null)
             {
                 Undo.RecordObject(kart.transform, "Position Kart at Start");
