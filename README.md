@@ -22,17 +22,6 @@ This repository contains the prototype codebase and development log for RESEARCH
 * AI Framework: Unity ML-Agents v2.0.1 (Barracuda inference runtime)
 * Physics: Custom raycast Arcade Kart physics model
 
-## Setup and Local Testing
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/username/krash-kart-devlog.git
-   ```
-2. Open Unity Hub and add the project using Unity 2022.3.62f2.
-3. Open `Assets/Karting/Scenes/IntroMenu.unity` or `MainScene.unity`.
-4. Press Play in the Unity Editor to start local testing or host a multiplayer session.
-
-## Documentation and Dev Log
 
 For complete technical notes, architectural breakdown, and issue resolution history, refer to [PROTOTYPE_DOCUMENTATION.md](PROTOTYPE_DOCUMENTATION.md).
 
