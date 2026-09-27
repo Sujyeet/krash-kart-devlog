@@ -10418,6 +10418,88 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 2088909034}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &962495422
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 962495423}
+  - component: {fileID: 962495424}
+  m_Layer: 0
+  m_Name: WeatherManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &962495423
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 962495422}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 11.102665, y: 7.703574, z: 0.24379897}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &962495424
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 962495422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 922c9d45b10566845a92eb50ed51d066, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentWeather: 0
+  dryNormalPreset:
+    AccelerationMultiplier: 1
+    BrakingMultiplier: 1
+    SteeringMultiplier: 1
+    GripMultiplier: 1
+    TopSpeedMultiplier: 1
+  dryHeatPreset:
+    AccelerationMultiplier: 1.1
+    BrakingMultiplier: 0.9
+    SteeringMultiplier: 1.1
+    GripMultiplier: 0.95
+    TopSpeedMultiplier: 1.05
+  rainLightDrizzlePreset:
+    AccelerationMultiplier: 0.9
+    BrakingMultiplier: 0.9
+    SteeringMultiplier: 0.9
+    GripMultiplier: 0.85
+    TopSpeedMultiplier: 0.95
+  rainHeavyPourPreset:
+    AccelerationMultiplier: 0.7
+    BrakingMultiplier: 0.7
+    SteeringMultiplier: 0.7
+    GripMultiplier: 0.75
+    TopSpeedMultiplier: 0.9
+  snowVisibleTrackPreset:
+    AccelerationMultiplier: 0.8
+    BrakingMultiplier: 0.8
+    SteeringMultiplier: 0.8
+    GripMultiplier: 0.7
+    TopSpeedMultiplier: 0.9
+  snowFullSnowPreset:
+    AccelerationMultiplier: 0.3
+    BrakingMultiplier: 0.6
+    SteeringMultiplier: 0.6
+    GripMultiplier: 0.6
+    TopSpeedMultiplier: 0.5
+  transitionDuration: 4
 --- !u!1 &963328184 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2870330542409281057, guid: 99ea5c30074df6049a24cf3e32d67aab,
@@ -17425,7 +17507,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e208308a8a3df847a8c97b4cdd10242, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lapsToComplete: 3
+  lapsToComplete: 100
   hudCanvas: {fileID: 0}
   resultsCanvas: {fileID: 0}
   resultsText: {fileID: 0}
@@ -23370,3 +23452,4 @@ SceneRoots:
   - {fileID: 695900665}
   - {fileID: 1508317291}
   - {fileID: 1693187753}
+  - {fileID: 962495423}

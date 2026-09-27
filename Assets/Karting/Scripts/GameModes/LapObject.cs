@@ -24,8 +24,6 @@ public class LapObject : TargetObject
 
     private void OnTriggerEnter(Collider other)
     {
-        Debug.Log($"[StartFinishLine TOUCHED] Collider: {other.name} | Parent: {(other.transform.parent != null ? other.transform.parent.name : "None")} | Time: {Time.timeSinceLevelLoad:F1}s");
-
         // Ignore initial spawn collisions during countdown/scene load
         if (Time.timeSinceLevelLoad < 1.5f)
             return;
@@ -33,12 +31,16 @@ public class LapObject : TargetObject
         ArcadeKart kart = other.GetComponentInParent<ArcadeKart>();
         if (kart == null) return;
 
+        // CRITICAL FIX: Ignore AI bots (KartAgent) - decoupled check across asmdef boundaries
+        if (kart.GetComponent("KartAgent") != null)
+            return;
+
         // Verify this is a kart we own (locally controlled) in multiplayer
         var netObj = kart.GetComponent<Unity.Netcode.NetworkObject>();
         if (netObj != null && netObj.IsSpawned && !netObj.IsOwner)
-            return; // Ignore other players' karts trigger entry
+            return; // Ignore other remote players' karts trigger entry
 
-        Debug.Log($"[StartFinishLine] Lap trigger entered by kart '{kart.name}'!");
+        Debug.Log($"[StartFinishLine] Lap trigger entered by local player kart '{kart.name}'!");
         Objective.OnUnregisterPickup?.Invoke(this);
     }
 }

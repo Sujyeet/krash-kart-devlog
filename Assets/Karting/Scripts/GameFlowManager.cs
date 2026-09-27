@@ -84,11 +84,18 @@ public class GameFlowManager : MonoBehaviour
         StartCoroutine(CountdownThenStartRaceRoutine());
     }
 
-   IEnumerator CountdownThenStartRaceRoutine() {
-    // Remove the delay line or set it to 0
-    yield return new WaitForSeconds(0f);
-    StartRace();
-}
+    IEnumerator CountdownThenStartRaceRoutine()
+    {
+        if (raceCountdownTrigger != null && raceCountdownTrigger.duration > 0)
+        {
+            yield return new WaitForSeconds((float)raceCountdownTrigger.duration);
+        }
+        else
+        {
+            yield return new WaitForSeconds(3f);
+        }
+        StartRace();
+    }
     void StartRace() {
         foreach (ArcadeKart k in karts)
         {

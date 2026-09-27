@@ -6,6 +6,9 @@ namespace KartGame.KartSystems
     {
         [Header("Spell Settings")]
         public string spellName = "Spell";
+        [TextArea(2, 3)]
+        public string description = "Spell Description";
+        public Sprite icon;
         public float cooldown = 5f;
 
         private float lastUsedTime = -999f;

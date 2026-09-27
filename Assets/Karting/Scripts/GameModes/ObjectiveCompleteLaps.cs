@@ -19,15 +19,21 @@ public class ObjectiveCompleteLaps : Objective
     void Awake()
     {
         currentLap = 0;
+        lapsToComplete = Mathf.Max(1, lapsToComplete);
         
         // set a title and description specific for this type of objective, if it hasn't one
         if (string.IsNullOrEmpty(title))
             title = $"Complete {lapsToComplete} {targetName}s";
-        
     }
 
     IEnumerator Start()
     {
+        lapsToComplete = Mathf.Max(1, lapsToComplete);
+        if (KartGame.Multiplayer.MultiplayerRaceManager.Instance != null)
+        {
+            KartGame.Multiplayer.MultiplayerRaceManager.Instance.lapsToComplete = lapsToComplete;
+        }
+
         TimeManager.OnSetTime(totalTimeInSecs, isTimed, gameMode);
         TimeDisplay.OnSetLaps?.Invoke(lapsToComplete);
         yield return new WaitForEndOfFrame();

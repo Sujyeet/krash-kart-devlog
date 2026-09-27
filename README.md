@@ -1,18 +1,6 @@
-## Setup and Local Testing
+# RESEARCH_ML — Development Log & Prototype
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Sujyeet/krash-kart-devlog.git
-   ```
-2. Open Unity Hub and add the project using Unity 2022.3.62f2.
-3. Open `Assets/Karting/Scenes/IntroMenu.unity` or `MainScene.unity`.
-4. Press Play in the Unity Editor to start local testing or host a multiplayer session.
-
-## Documentation and Dev Log
-
-# Krash Kart - Development Log & Prototype
-
-This repository contains the prototype codebase and development log for Krash Kart, an active Unity 2022.3 kart racing project. It demonstrates real-time peer-to-peer multiplayer via Unity Netcode for GameObjects and Unity Relay, alongside autonomous AI opponents trained using Unity ML-Agents.
+This repository contains the prototype codebase and development log for RESEARCH_ML, an active Unity 2022.3 kart racing project. It demonstrates real-time peer-to-peer multiplayer via Unity Netcode for GameObjects and Unity Relay, alongside autonomous AI opponents trained using Unity ML-Agents.
 
 ## Project Status
 

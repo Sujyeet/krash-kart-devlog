@@ -19,6 +19,14 @@ namespace KartGame.GameFlow
         /// Action invoked when an agent finishes the race in single-player mode.
         /// </summary>
         public static System.Action<Component> OnAgentFinishedRace;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticState()
+        {
+            OnAgentFinishedRace = null;
+            IsSinglePlayer = false;
+            IncludeMLAgents = true;
+        }
     }
 }
 
