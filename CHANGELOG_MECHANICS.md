@@ -77,3 +77,55 @@
 * **How**: Implemented `GetAllSpells()`, `GenerateDraftOptions(count)`, and `EquipSpellToKart(kart, spellPrefab, slotIndex)` supporting runtime spell instantiation and slot replacement.
 * **Why Not Alternatives**:
   - *Alternative 1 (Hardcoding 4 spells per kart prefab)*: Rejected because draft mechanics require flexible runtime spell assignment.
+
+## 10. Offline Testing Scene Pipeline and Multi-System Defensive Guards
+
+* **What Changed**:
+  - `QuickDriveSetup.cs`: Automated generator for `Assets/Karting/Scenes/QuickDrive.unity` using `OvalTrack_Training`, `KartClassic_Player`, and `KartClassic_MLAgent 1`. Automates stripping of all netcode/multiplayer components in strict dependency order, sets dynamic `Rigidbody` physics, binds Cinemachine camera follow/lookAt targets, and links track checkpoint colliders to `KartAgent.Colliders`.
+  - `AudioUtility.cs`: Added null guards for `AudioManager` and `audioMixer` in `CreateSFX`, `GetAudioGroup`, `SetMasterVolume`, and `GetMasterVolume`.
+  - `KartAgent.cs`: Added auto-detection of `Agent Checkpoints` in `Awake()`, guarded `CollectObservations()` to maintain a consistent 12-vector observation space, and guarded `OnActionReceived()` against unassigned checkpoint colliders.
+  - `ArcadeKart.cs`: Added `!Rigidbody.isKinematic` checks in `GroundAirbourne()` and `MoveVehicle()` orientation logic.
+  - `ManualPlayerPerformanceLogger.cs`: Moved `SetupLoggingDirectory()` call to `Awake()` and added fallback directory creation guards in `SaveResults()`.
+  - `HexSpell.cs`: Added an offline local target fallback when `HexNetworkHelper` is absent.
+* **Why**: Provide instant offline testing of the player kart and ML Agent without multiplayer networking overhead, while eliminating console errors and warnings.
+* **How**:
+  - `QuickDriveSetup.cs` uses `SerializedObject` to configure Cinemachine and ML-Agent properties across assembly boundaries.
+  - Netcode components are stripped in reverse dependency order (`Custom NetworkBehaviours` -> `NetworkRigidbody` -> `NetworkTransform` -> `NetworkObject`), ensuring clean destruction without engine exceptions.
+  - Checkpoint colliders are automatically assigned and tagged `LaneDivider` to support performance logging.
+* **Why Not Alternatives**:
+  - *Alternative 1 (Running a local Netcode host in test scenes)*: Rejected because local host networking introduces latency, requires NetworkManager overhead, and complicates fast iteration.
+  - *Alternative 2 (Maintaining static pre-baked test scenes)*: Rejected because static test scenes break when prefab hierarchies or component dependencies change. Auto-generation guarantees an up-to-date test environment.
+
+## 11. True Arcade Drifting Physics Overhaul
+
+* **What Changed**: Completely rewrote the drifting logic in `ArcadeKart.cs` to remove artificial inward pull and complex velocity lerping, replacing them with a simplified angular rotation and reduced grip model.
+* **Why**: The previous implementation fought the player's steering inputs and felt clunky. We needed a satisfying, Mario Kart-style true drift that relies on natural momentum side-slip.
+* **How**: 
+  - Drifting now instantly reduces `m_CurrentGrip` to `DriftGrip`, causing a natural lateral slide based on preserved momentum.
+  - Added a snappy entry hop (`Rigidbody.AddForce(Vector3.up * 2.0f)`) when drift initiates.
+  - Removed artificial apex pulling; turning power is now cleanly defined by `turnInput * (baseStats.Steer + DriftAdditionalSteer)`.
+* **Why Not Alternatives**:
+  - *Alternative 1 (Velocity lerping and artificial inward forces)*: Previously attempted but rejected because it made cornering feel "on-rails" and unpredictable.
+
+## 12. Decoupled Modular Drifting Physics Engine (KartDrift.cs)
+
+* **What Changed**: Separated all drifting handling, physics, VFX management, and mini-turbo boost logic out of `ArcadeKart.cs` into a dedicated component `KartDrift.cs`. `ArcadeKart.cs` now holds a `KartDrift DriftController` reference and delegates `IsDrifting`, `WantsToDrift`, `EffectiveGrip()`, `SteeringPower()`, and `ApplyBoost()` to `KartDrift`.
+* **Why**: Enforces single-responsibility architecture, eliminates monolithic bloat in `ArcadeKart.cs`, and delivers satisfying arcade drift physics inspired by Mario Kart / CTR (entry hop impulse, smooth counter-steering yaw, 3-tier mini-turbo boost system, and color-coded particle sparks / tire trails).
+* **How**:
+  - Created `KartDrift.cs` with configurable entry speed/steer thresholds, single-frame entry hop impulse (`HopVelocityChange`), asymmetric steer-into-turn vs counter-steer dampening, and 3-stage mini-turbo charge timer (Tier 1 blue, Tier 2 yellow, Tier 3 magenta).
+  - Wired `KartDrift.Tick()` directly into `ArcadeKart.FixedUpdate()` after ground contact calculation.
+  - Exposed `DriftSteering`, `DriftDirection`, and `SetVFXActive()` on `KartDrift` for visual body lean and remote network replication compatibility.
+* **Why Not Alternatives**:
+  - *Alternative 1 (Keeping drift code inside ArcadeKart.cs)*: Rejected because `ArcadeKart.cs` was exceeding 780 lines with entangled responsibilities (wheels, powerups, hex spells, weather, drifting, audio, network synchronization).
+  - *Alternative 2 (Physics Material friction curve manipulation alone)*: Rejected because Unity WheelCollider sideways friction curves do not produce arcade-style snappy counter-steering or controlled hop drift transitions.
+
+## 13. Project Versioning and Safe Recovery Tooling (kart-git.ps1 Refactor)
+
+* **What Changed**: Overhauled `kart-git.ps1` with PowerShell parameter binding (`param([string]$Command, [string]$Arg1)`), uncommitted change collision detection (`Safe-CheckoutRestoreBranch`), and explicit hard reset command (`Safe-DiscardAllUncommittedChanges` / `reset-hard`).
+* **Why**: Developers attempting to revert to previous snapshots (`prototype-v1.0`, baseline tags, or prior commit saves) encountered silent failures when local uncommitted changes conflicted with historical commits, leaving the workspace in an inconsistent, broken state with false-positive success reporting.
+* **How**:
+  - Bound CLI parameters to bypass the interactive menu when arguments are passed (e.g. `.\kart-git.ps1 revert-to <tag>`, `.\kart-git.ps1 status`, `.\kart-git.ps1 save "message"`).
+  - Inspects `git status --porcelain` before initiating checkouts. Prompts user to stash (`[S]`), discard (`[D]`), or abort (`[C]`).
+  - Added dedicated hard-reset option to discard local experimental modifications and restore clean HEAD.
+* **Why Not Alternatives**:
+  - *Alternative 1 (Relying solely on external GUI clients like GitHub Desktop or GitKraken)*: Rejected because a self-contained, project-specific PowerShell automation script provides rapid, one-command operations tailored to Unity's `.meta` and lock-file requirements without external client dependencies.
