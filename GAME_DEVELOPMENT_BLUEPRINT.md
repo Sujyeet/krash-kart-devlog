@@ -1,8 +1,8 @@
-# Krash Kart — Master Game Development Blueprint & Production Roadmap
+# RESEARCH_ML — Master Game Development Blueprint & Production Roadmap
 
 ## 1. Executive Summary & Technical Vision
 
-Krash Kart is an action arcade kart racing game built in Unity 2022.3. It combines real-time peer-to-peer multiplayer via Unity Netcode for GameObjects (NGO) and Unity Relay with autonomous AI opponents trained using Unity ML-Agents.
+RESEARCH_ML is an action arcade kart racing game built in Unity 2022.3. It combines real-time peer-to-peer multiplayer via Unity Netcode for GameObjects (NGO) and Unity Relay with autonomous AI opponents trained using Unity ML-Agents.
 
 This blueprint serves as the living production master plan for transitioning from prototype into full game production.
 
@@ -127,6 +127,20 @@ stateDiagram-v2
 #### Feature 1.3: ScriptableObject Garage & Vehicle Stats Schema
 * **Description**: Modular garage framework where karts reference `KartDataSO` data assets for stats (Top Speed, Acceleration, Handling, Weight, Drift Multiplier).
 * **Technical Design**: `KartDataSO` scriptable objects assigned per vehicle prefab in Inspector.
+
+#### Feature 1.4: Environmental Weather Modifier System
+* **Description**: Dynamic track conditions modulating acceleration, braking, steering responsiveness, and tire grip across 6 environmental states (Dry Normal, Dry Heat, Rain Light Drizzle, Rain Heavy Pour, Snow Visible Track, Snow Full Snow).
+* **Technical Design**: `WeatherManager.cs` singleton dispatches `OnWeatherChanged` events and provides `CurrentModifiers` applied in `ArcadeKart.TickPowerups()` per physics tick.
+* **Potential Issues**: Extreme negative multipliers causing karts to stall completely on inclines.
+* **Fix & Mitigation**: Enforce lower bounds on effective acceleration and friction (minimum 0.35x clamp).
+* **Why Not Alternatives**: Swapping PhysX PhysicMaterial assets was rejected because custom arcade raycast WheelColliders calculate traction through C# math.
+
+#### Feature 1.5: Powerup Catalog & Draft Selection Pipeline
+* **Description**: Game flow phase allowing players to browse the complete spell catalog, receive randomized draft pools, and assign selected power-ups to kart spell slots.
+* **Technical Design**: `PowerupDraftManager.cs` catalog query (`GetAllSpells()`), randomized selection generator (`GenerateDraftOptions(count)`), and slot binding (`EquipSpellToKart()`).
+* **Potential Issues**: Instantiating multiple conflicting spell prefabs on the same slot.
+* **Fix & Mitigation**: Destroy existing slot GameObject before instantiating and assigning the newly drafted spell.
+* **Why Not Alternatives**: Hardcoding 4 static spell components per kart was rejected to support draft gameplay.
 
 ---
 

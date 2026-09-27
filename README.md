@@ -8,11 +8,9 @@
 3. Open `Assets/Karting/Scenes/IntroMenu.unity` or `MainScene.unity`.
 4. Press Play in the Unity Editor to start local testing or host a multiplayer session.
 
-## Documentation and Dev Log
+# RESEARCH_ML — Development Log & Prototype
 
-# Krash Kart - Development Log & Prototype
-
-This repository contains the prototype codebase and development log for Krash Kart, an active Unity 2022.3 kart racing project. It demonstrates real-time peer-to-peer multiplayer via Unity Netcode for GameObjects and Unity Relay, alongside autonomous AI opponents trained using Unity ML-Agents.
+This repository contains the prototype codebase and development log for RESEARCH_ML, an active Unity 2022.3 kart racing project. It demonstrates real-time peer-to-peer multiplayer via Unity Netcode for GameObjects and Unity Relay, alongside autonomous AI opponents trained using Unity ML-Agents.
 
 ## Project Status
 
@@ -34,9 +32,11 @@ This repository contains the prototype codebase and development log for Krash Ka
 * AI Framework: Unity ML-Agents v2.0.1 (Barracuda inference runtime)
 * Physics: Custom raycast Arcade Kart physics model
 
+## Documentation and Dev Log
 
 For complete technical notes, architectural breakdown, and issue resolution history, refer to [PROTOTYPE_DOCUMENTATION.md](PROTOTYPE_DOCUMENTATION.md).
 
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
+

@@ -53,7 +53,9 @@ namespace KartGame.KartSystems
             [Tooltip("Additional gravity for when the kart is in the air.")]
             public float AddedGravity;
 
-            
+            [Tooltip("Total mass of the kart in kg. Influences collision physics, inertia, and drift momentum.")]
+            public float Weight;
+
             public static Stats operator +(Stats a, Stats b)
             {
                 return new Stats
@@ -63,6 +65,7 @@ namespace KartGame.KartSystems
                     Braking             = a.Braking + b.Braking,
                     CoastingDrag        = a.CoastingDrag + b.CoastingDrag,
                     AddedGravity        = a.AddedGravity + b.AddedGravity,
+                    Weight              = a.Weight + b.Weight,
                     Grip                = a.Grip + b.Grip,
                     ReverseAcceleration = a.ReverseAcceleration + b.ReverseAcceleration,
                     ReverseSpeed        = a.ReverseSpeed + b.ReverseSpeed,
@@ -72,24 +75,29 @@ namespace KartGame.KartSystems
             }
         }
 
+        [Header("Kart Attribute Asset")]
+        [Tooltip("Optional ScriptableObject defining this kart's core attributes and drift tuning.")]
+        [SerializeField] private KartDataSO kartData;
+
         public Rigidbody Rigidbody { get; private set; }
         public InputData Input     { get; private set; }
         public float AirPercent    { get; private set; }
         public float GroundPercent { get; private set; }
 
-//Base stats for Local Kart (non-networked) and Remote Karts (networked). 
+        // Base stats for Local Kart (non-networked) and Remote Karts (networked). 
         public ArcadeKart.Stats baseStats = new ArcadeKart.Stats
         {
-            TopSpeed = 16f,              // Fast top speed for exciting racing
-            Acceleration = 5f,           // Strong but not instant - feels powerful
-            AccelerationCurve = 0.7f,    // Gradual power curve (valid range 0.2-1.0)
-            Braking = 10f,               // Reduced braking so speed stays above threshold during drift initiation
-            ReverseAcceleration = 4f,    // Slower reverse - realistic
-            ReverseSpeed = 8f,           // Reasonable reverse speed
-            Steer = 5.5f,                  // Slightly reduced - heavy cars turn slower
-            CoastingDrag = 1.5f,         // Low drag - maintains momentum like a heavy car
-            Grip = 0.80f,                // Reduced grip - allows sliding, feels weighty
-            AddedGravity = 12f,           // More gravity - kart feels planted and heavy
+            TopSpeed = 13.5f,
+            Acceleration = 4.5f,
+            AccelerationCurve = 0.7f,
+            Braking = 10f,
+            ReverseAcceleration = 4f,
+            ReverseSpeed = 8f,
+            Steer = 5.5f,
+            CoastingDrag = 1.5f,
+            Grip = 0.80f,
+            AddedGravity = 6f,
+            Weight = 250f,
         };
 
         [Header("Vehicle Visual")] 
@@ -260,10 +268,29 @@ namespace KartGame.KartSystems
             wheel.suspensionSpring = spring;
         }
 
+        private NetworkObject m_CachedNetObj;
+        private NetworkedKartAnimState m_CachedAnimState;
+
         void Awake()
         {
             Rigidbody = GetComponent<Rigidbody>();
             m_Inputs = GetComponents<IInput>();
+            m_CachedNetObj = GetComponent<NetworkObject>();
+            m_CachedAnimState = GetComponent<NetworkedKartAnimState>();
+
+            // Initialize stats from ScriptableObject asset if assigned
+            if (kartData != null)
+            {
+                baseStats = kartData.stats;
+                DriftGrip = kartData.driftGrip;
+                DriftAdditionalSteer = kartData.driftAdditionalSteer;
+                DriftSpeedFraction = kartData.driftSpeedFraction;
+            }
+
+            if (Rigidbody != null && baseStats.Weight > 0f)
+            {
+                Rigidbody.mass = baseStats.Weight;
+            }
 
             // Sanitize drift parameters at runtime to prevent deadlock
             DriftGrip = Mathf.Clamp(DriftGrip, 0.1f, 1.0f);
@@ -326,16 +353,6 @@ namespace KartGame.KartSystems
             }
         }
 
-void Start()
-{
-    
-    if (gameObject.CompareTag("Player") || gameObject.CompareTag("Human"))
-    {
-        // Reduce speed for human players
-        baseStats.TopSpeed *= 0.85f;
-        baseStats.Acceleration *= 0.9f;
-    }
-}
         void AddTrailToWheel(WheelCollider wheel)
         {
             GameObject trailRoot = Instantiate(DriftTrailPrefab, gameObject.transform, false);
@@ -354,14 +371,12 @@ void Start()
 
         private void Update()
         {
-            NetworkObject netObj = GetComponent<NetworkObject>();
-            if (netObj != null && netObj.IsSpawned && !netObj.IsOwner)
+            if (m_CachedNetObj != null && m_CachedNetObj.IsSpawned && !m_CachedNetObj.IsOwner)
             {
                 // Sync drift VFX for remote karts based on the Networked anim state
-                var animState = GetComponent<NetworkedKartAnimState>();
-                if (animState != null)
+                if (m_CachedAnimState != null)
                 {
-                    ActivateDriftVFX(animState.Drifting.Value);
+                    ActivateDriftVFX(m_CachedAnimState.Drifting.Value);
                 }
                 UpdateDriftVFXOrientation();
             }
@@ -370,12 +385,12 @@ void Start()
         void FixedUpdate()
         {
             // Check if we're a remote client (not owner)
-    NetworkObject netObj = GetComponent<NetworkObject>();
-    if (netObj != null && netObj.IsSpawned && !netObj.IsOwner)
-    {
-        // Remote client - don't apply physics, just let Network Transform sync position
-        return;
-    }
+            if (m_CachedNetObj != null && m_CachedNetObj.IsSpawned && !m_CachedNetObj.IsOwner)
+            {
+                // Remote client - don't apply physics, just let Network Transform sync position
+                return;
+            }
+
             UpdateSuspensionParams(FrontLeftWheel);
             UpdateSuspensionParams(FrontRightWheel);
             UpdateSuspensionParams(RearLeftWheel);
@@ -383,10 +398,8 @@ void Start()
 
             GatherInputs();
 
-          
             TickPowerups();
 
-            
             Rigidbody.centerOfMass = transform.InverseTransformPoint(CenterOfMass.position);
 
             int groundedCount = 0;
@@ -399,11 +412,9 @@ void Start()
             if (RearRightWheel.isGrounded && RearRightWheel.GetGroundHit(out hit))
                 groundedCount++;
 
-            
             GroundPercent = (float) groundedCount / 4.0f;
             AirPercent = 1 - GroundPercent;
 
-            
             if (m_CanMove)
             {
                 MoveVehicle(Input.Accelerate, Input.Brake, Input.TurnInput);
@@ -416,70 +427,71 @@ void Start()
         }
 
         void GatherInputs()
-{
-    InputData currentInput = new InputData();
-    WantsToDrift = false;
-
-    if (m_Inputs == null) return;
-    
-    for (int i = 0; i < m_Inputs.Length; i++)
-    {
-        if (m_Inputs[i] != null)
         {
-            currentInput = m_Inputs[i].GenerateInput();
-        }
-    }
+            InputData currentInput = new InputData();
+            WantsToDrift = false;
 
-    if (m_HexActive)
-    {
-        if (Time.time >= m_HexEndTime)
-        {
-            m_HexActive = false;
-        }
-        else
-        {
-            bool oldAccelerate = currentInput.Accelerate;
-            currentInput.Accelerate = currentInput.Brake;
-            currentInput.Brake = oldAccelerate;
-            currentInput.TurnInput *= -1f;
-        }
-    }
+            if (m_Inputs == null) return;
+            
+            for (int i = 0; i < m_Inputs.Length; i++)
+            {
+                if (m_Inputs[i] != null)
+                {
+                    currentInput = m_Inputs[i].GenerateInput();
+                }
+            }
 
-    Input = currentInput;
-    WantsToDrift = Input.Brake && Vector3.Dot(Rigidbody.velocity, transform.forward) > 0.0f;
-}
+            if (m_HexActive)
+            {
+                if (Time.time >= m_HexEndTime)
+                {
+                    m_HexActive = false;
+                }
+                else
+                {
+                    bool oldAccelerate = currentInput.Accelerate;
+                    currentInput.Accelerate = currentInput.Brake;
+                    currentInput.Brake = oldAccelerate;
+                    currentInput.TurnInput *= -1f;
+                }
+            }
+
+            Input = currentInput;
+            WantsToDrift = Input.Brake && Vector3.Dot(Rigidbody.velocity, transform.forward) > 0.0f;
+        }
 
         void TickPowerups()
         {
-            
             m_ActivePowerupList.RemoveAll((p) => { return p.ElapsedTime > p.MaxTime; });
 
-           
             var powerups = new Stats();
 
-            
             for (int i = 0; i < m_ActivePowerupList.Count; i++)
             {
                 var p = m_ActivePowerupList[i];
-
-          
                 p.ElapsedTime += Time.fixedDeltaTime;
-
-                
                 powerups += p.modifiers;
             }
 
-          
             m_FinalStats = baseStats + powerups;
 
-           
+            // Apply Weather Modifiers dynamically
+            if (KartGame.Track.WeatherManager.Instance != null)
+            {
+                var weatherMods = KartGame.Track.WeatherManager.Instance.CurrentModifiers;
+                m_FinalStats.Acceleration *= weatherMods.AccelerationMultiplier;
+                m_FinalStats.Braking *= weatherMods.BrakingMultiplier;
+                m_FinalStats.Steer *= weatherMods.SteeringMultiplier;
+                m_FinalStats.Grip *= weatherMods.GripMultiplier;
+                m_FinalStats.TopSpeed *= weatherMods.TopSpeedMultiplier;
+            }
+
             m_FinalStats.Grip = Mathf.Clamp(m_FinalStats.Grip, 0, 1);
         }
 
         void GroundAirbourne()
         {
-           
-            if (AirPercent >= 0.25f)
+            if (AirPercent >= 0.75f)
             {
                 Rigidbody.velocity += Physics.gravity * Time.fixedDeltaTime * m_FinalStats.AddedGravity;
             }
@@ -593,14 +605,18 @@ void Start()
             {
                 Rigidbody.velocity = newVelocity;
             }
-
-          
+            
+            
             if (GroundPercent > 0.0f)
             {
                 if (m_InAir)
                 {
                     m_InAir = false;
-                    Instantiate(JumpVFX, transform.position, Quaternion.identity);
+                    if (JumpVFX != null)
+                    {
+                        GameObject jumpInstance = Instantiate(JumpVFX, transform.position, Quaternion.identity);
+                        Destroy(jumpInstance, 3f);
+                    }
                 }
 
                 
@@ -637,9 +653,11 @@ void Start()
                     }
                 }
 
-           
+                // Keep grip current with weather changes during normal driving
                 if (!IsDrifting)
                 {
+                    m_CurrentGrip = m_FinalStats.Grip;
+
                     if ((WantsToDrift || isBraking) && currentSpeed > maxSpeed * MinSpeedPercentToFinishDrift)
                     {
                         IsDrifting = true;
@@ -696,7 +714,8 @@ void Start()
                     if (turnInputAbs < k_NullInput)
                         m_DriftTurningPower = Mathf.MoveTowards(m_DriftTurningPower, 0.0f, Mathf.Clamp01(DriftDampening * Time.fixedDeltaTime));
 
-                    float driftMaxSteerValue = m_FinalStats.Steer + DriftAdditionalSteer;
+                    // ponytail: use baseStats.Steer for drift clamp to prevent weather steer reduction from shrinking drift range
+                    float driftMaxSteerValue = baseStats.Steer + DriftAdditionalSteer;
                     m_DriftTurningPower = Mathf.Clamp(m_DriftTurningPower + (turnInput * Mathf.Clamp01(DriftControl * Time.fixedDeltaTime)), -driftMaxSteerValue, driftMaxSteerValue);
 
                     bool facingVelocity = Vector3.Dot(Rigidbody.velocity.normalized, transform.forward * Mathf.Sign(accelInput)) > Mathf.Cos(MinAngleToFinishDrift * Mathf.Deg2Rad);

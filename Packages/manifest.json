@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.boxqkrtm.ide.cursor": "https://github.com/boxqkrtm/com.unity.ide.cursor.git",
+    "com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity",
     "com.unity.ai.navigation": "1.1.6",
     "com.unity.barracuda": "3.0.0",
     "com.unity.burst": "1.8.21",
@@ -20,6 +21,7 @@
     "com.unity.services.core": "1.16.0",
     "com.unity.services.multiplayer": "2.2.3",
     "com.unity.services.relay": "1.2.0",
+    "com.unity.splines": "2.8.4",
     "com.unity.test-framework": "1.1.33",
     "com.unity.textmeshpro": "3.0.7",
     "com.unity.timeline": "1.7.7",

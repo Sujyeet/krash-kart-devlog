@@ -9,41 +9,73 @@ using UnityEngine;
 
 public class RelayManager : MonoBehaviour
 {
+    private static bool isInitializing = false;
+
     private async void Start()
-{
-    try
     {
-        var options = new InitializationOptions();
+        await InitializeServicesAsync();
+    }
+
+    public async Task<bool> InitializeServicesAsync()
+    {
+        if (UnityServices.State == ServicesInitializationState.Initialized && AuthenticationService.Instance.IsSignedIn)
+        {
+            return true;
+        }
+
+        while (isInitializing)
+        {
+            await Task.Delay(100);
+            if (UnityServices.State == ServicesInitializationState.Initialized && AuthenticationService.Instance.IsSignedIn)
+                return true;
+        }
+
+        isInitializing = true;
+
+        try
+        {
+            if (UnityServices.State == ServicesInitializationState.Uninitialized)
+            {
+                var options = new InitializationOptions();
 
 #if UNITY_EDITOR
-        string[] args = System.Environment.GetCommandLineArgs();
-        bool isClone = false;
-        foreach (string arg in args)
-        {
-            if (arg == "-parrelsyncclone")
-            {
-                isClone = true;
-                break;
-            }
-        }
-        options.SetProfile(isClone ? "Player2" : "Player1");
+                string[] args = System.Environment.GetCommandLineArgs();
+                bool isClone = false;
+                foreach (string arg in args)
+                {
+                    if (arg == "-parrelsyncclone")
+                    {
+                        isClone = true;
+                        break;
+                    }
+                }
+                options.SetProfile(isClone ? "Player2" : "Player1");
 #endif
 
-        if (!AuthenticationService.Instance.IsSignedIn)
-        {
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            Debug.Log("[Relay] Signed in successfully!");
+                await UnityServices.InitializeAsync(options);
+                Debug.Log("[Relay] Unity Services initialized successfully!");
+            }
+
+            if (!AuthenticationService.Instance.IsSignedIn)
+            {
+                await AuthenticationService.Instance.SignInAnonymouslyAsync();
+                Debug.Log("[Relay] Signed in successfully!");
+            }
+            else
+            {
+                Debug.Log("[Relay] Player is already signed in.");
+            }
+
+            isInitializing = false;
+            return true;
         }
-        else
+        catch (System.Exception e)
         {
-            Debug.Log("[Relay] Player is already signed in.");
+            isInitializing = false;
+            Debug.LogError($"[Relay] Failed to initialize Unity Services: {e.Message}");
+            return false;
         }
     }
-    catch (System.Exception e)
-    {
-        Debug.LogError($"[Relay] Failed to initialize: {e.Message}");
-    }
-}
 
     public static string JoinCode = "";
 
@@ -51,6 +83,12 @@ public class RelayManager : MonoBehaviour
     {
         try
         {
+            if (!await InitializeServicesAsync())
+            {
+                Debug.LogError("[Relay] Cannot create allocation: Unity Services initialization failed.");
+                return null;
+            }
+
             Allocation allocation = await RelayService.Instance.CreateAllocationAsync(4);
             string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
@@ -79,6 +117,12 @@ public class RelayManager : MonoBehaviour
     {
         try
         {
+            if (!await InitializeServicesAsync())
+            {
+                Debug.LogError("[Relay] Cannot join allocation: Unity Services initialization failed.");
+                return false;
+            }
+
             JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
 
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
