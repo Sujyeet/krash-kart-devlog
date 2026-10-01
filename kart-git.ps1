@@ -1,5 +1,15 @@
-# Krash Kart -- Git Control Center
-# Interactive terminal app. Run with: .\kart-git.ps1
+# RESEARCH_ML -- Git Control Center
+# Interactive terminal app & CLI tool.
+# Run interactively: .\kart-git.ps1
+# Run commands:      .\kart-git.ps1 save "message" | status | history | revert-to <tag/hash> | reset-hard | etc.
+
+param(
+    [Parameter(Position=0)]
+    [string]$Command,
+
+    [Parameter(Position=1, ValueFromRemainingArguments=$true)]
+    [string[]]$Arguments
+)
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ProjectRoot
@@ -40,22 +50,115 @@ function Write-Divider {
 
 function Prompt-Input ($label) {
     Write-Host ""
-    Write-Host "  > $label" -NoNewline -ForegroundColor Yellow
-    return (Read-Host " ")
+    Write-Host "  > ${label}: " -NoNewline -ForegroundColor Yellow
+    $val = Read-Host
+    if ($val) { return $val.Trim() }
+    return ""
 }
 
 function Confirm ($msg) {
     Write-Host ""
     Write-Host "  ! $msg" -ForegroundColor Red
     Write-Host "    Type YES to confirm: " -NoNewline -ForegroundColor DarkGray
-    $r = Read-Host ""
-    return ($r -eq "YES")
+    $r = Read-Host
+    if (-not $r) { return $false }
+    $trimmed = $r.Trim()
+    return ($trimmed.ToUpper() -eq "YES" -or $trimmed.ToUpper() -eq "Y")
 }
 
 function Press-Any {
     Write-Host ""
     Write-Host "  [ Press ENTER to continue ]" -ForegroundColor DarkGray
-    Read-Host | Out-Null
+    $null = Read-Host
+}
+
+# ============================================================
+# SAFE RESTORE ENGINE
+# ============================================================
+
+function Safe-CheckoutRestoreBranch ($target, $description) {
+    Write-Host ""
+    Write-Host "  Validating target '$target'..." -ForegroundColor DarkGray
+    $exists = git rev-parse --verify $target 2>$null
+    if (-not $exists) {
+        Write-Host "  Target '$target' not found in Git repository." -ForegroundColor Red
+        return $false
+    }
+
+    # Check if working copy is dirty
+    $dirty = git status --porcelain 2>$null
+    if ($dirty) {
+        Write-Host ""
+        Write-Host "  [!] You have unsaved changes in your working copy." -ForegroundColor Yellow
+        Write-Host "      Git cannot safely switch versions while uncommitted edits exist." -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "    [S] Stash changes safely (save them to a restore stash pocket)" -ForegroundColor Cyan
+        Write-Host "    [D] Discard all unsaved changes and restore $target cleanly" -ForegroundColor Red
+        Write-Host "    [C] Cancel operation" -ForegroundColor DarkGray
+        $choice = Prompt-Input "Choose an option [S/D/C]"
+
+        if ($choice -imatch "^s$") {
+            $stashName = "Auto-stash before restoring to $target on $(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')"
+            git stash push -u -m $stashName 2>&1 | Out-Null
+            Write-Host "  Unsaved work saved to stash: $stashName" -ForegroundColor Green
+        } elseif ($choice -imatch "^d$") {
+            if (Confirm "Are you sure you want to PERMANENTLY DISCARD all unsaved edits?") {
+                git reset --hard HEAD 2>&1 | Out-Null
+                git clean -fd -e "Paper/" 2>&1 | Out-Null
+                Write-Host "  All unsaved edits discarded." -ForegroundColor Yellow
+            } else {
+                Write-Host "  Cancelled." -ForegroundColor DarkGray
+                return $false
+            }
+        } else {
+            Write-Host "  Restore cancelled." -ForegroundColor DarkGray
+            return $false
+        }
+    }
+
+    $safeName = ($target -replace '[^a-zA-Z0-9]', '-').ToLower().TrimEnd('-')
+    $restoreBranch = "restore/$safeName"
+
+    $existingBranch = git branch --list $restoreBranch 2>$null
+    if ($existingBranch) {
+        Write-Host "  Branch '$restoreBranch' already exists. Switching to it..." -ForegroundColor Cyan
+        git checkout $restoreBranch
+    } else {
+        Write-Host "  Creating isolated branch '$restoreBranch' from $target..." -ForegroundColor Cyan
+        git checkout -b $restoreBranch $target
+    }
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host ""
+        Write-Host "  SUCCESS: Project is now loaded at save: $target" -ForegroundColor Green
+        Write-Host "  Active branch: $restoreBranch" -ForegroundColor Green
+        Write-Host "  (To return to active develop branch at any time: git checkout develop)" -ForegroundColor Yellow
+        return $true
+    } else {
+        Write-Host ""
+        Write-Host "  ERROR: Git could not checkout '$target'. See above messages." -ForegroundColor Red
+        return $false
+    }
+}
+
+function Safe-DiscardAllUncommittedChanges {
+    Write-Host ""
+    Write-Host "  DISCARD ALL UNSAVED CHANGES (HARD RESET)" -ForegroundColor Red
+    Write-Host "  This will revert every modified script/scene and delete uncommitted files," -ForegroundColor Yellow
+    Write-Host "  bringing your working project back to the exact state of your last save." -ForegroundColor Yellow
+    Write-Host ""
+
+    if (Confirm "Wipe all current changes and restore to last saved commit?") {
+        git reset --hard HEAD
+        git clean -fd -e "Paper/"
+        Write-Host ""
+        Write-Host "  SUCCESS: Working directory restored cleanly to last save (HEAD)." -ForegroundColor Green
+        return $true
+    } else {
+        Write-Host ""
+        Write-Host "  Cancelled. No changes were made." -ForegroundColor DarkGray
+        return $false
+    }
 }
 
 # ============================================================
@@ -73,7 +176,7 @@ function Show-MainMenu {
         Write-Host "    [3]  Snapshots           Create and restore named checkpoints" -ForegroundColor Cyan
         Write-Host "    [4]  Features            Start, switch, and merge feature branches" -ForegroundColor Cyan
         Write-Host "    [5]  Sync GitHub         Push or pull from GitHub" -ForegroundColor Cyan
-        Write-Host "    [6]  Emergency Revert    Undo a file or jump to an old version" -ForegroundColor Red
+        Write-Host "    [6]  Emergency Revert    Undo files, load saves, or hard-reset" -ForegroundColor Red
         Write-Host "    [0]  Exit" -ForegroundColor DarkGray
         Write-Host ""
         Write-Divider
@@ -203,19 +306,9 @@ function Menu-History {
         Write-Host "  Saved    : $($entry.Time)" -ForegroundColor DarkGray
         Write-Host "  ID       : $($entry.Hash)" -ForegroundColor DarkGray
         Write-Host ""
-        Write-Host "  This opens that save in a RESTORE BRANCH." -ForegroundColor White
-        Write-Host "  Your current work on 'develop' is completely untouched." -ForegroundColor DarkGray
-        Write-Host "  To go back to active work at any time: git checkout develop" -ForegroundColor DarkGray
 
         if (Confirm "Open this save in a restore branch?") {
-            $safeName = ($entry.Subject -replace '[^a-zA-Z0-9]', '-').ToLower().TrimEnd('-')
-            $restoreBranch = "restore/$safeName"
-            $result = git checkout -b $restoreBranch $entry.Hash 2>&1
-            Write-Host ""
-            Write-Host "  Opened: $restoreBranch" -ForegroundColor Green
-            Write-Host "  You are viewing the project at: $($entry.Subject)" -ForegroundColor Green
-            Write-Host ""
-            Write-Host "  To return to your work:   git checkout develop" -ForegroundColor Yellow
+            Safe-CheckoutRestoreBranch $entry.Hash $entry.Subject
             Press-Any
             return
         } else {
@@ -306,17 +399,9 @@ function Menu-Snapshots {
         Write-Host "  Snapshot : $($entry.Tag)" -ForegroundColor Yellow
         Write-Host "  Created  : $($entry.Time)" -ForegroundColor DarkGray
         Write-Host ""
-        Write-Host "  This opens the snapshot in a restore branch." -ForegroundColor White
-        Write-Host "  Your current work is completely untouched." -ForegroundColor DarkGray
 
         if (Confirm "Restore snapshot '$($entry.Tag)'?") {
-            $restoreBranch = "restore/$($entry.Tag)"
-            git checkout -b $restoreBranch $entry.Tag 2>$null | Out-Null
-            Write-Host ""
-            Write-Host "  Restored : $($entry.Tag)" -ForegroundColor Green
-            Write-Host "  Branch   : $restoreBranch" -ForegroundColor Green
-            Write-Host ""
-            Write-Host "  To return to active work:   git checkout develop" -ForegroundColor Yellow
+            Safe-CheckoutRestoreBranch $entry.Tag "Snapshot $($entry.Tag)"
         } else {
             Write-Host "  Cancelled." -ForegroundColor DarkGray
         }
@@ -475,9 +560,10 @@ function Menu-Revert {
     Write-Host ""
     Write-Host "  Choose how you want to undo something:" -ForegroundColor White
     Write-Host ""
-    Write-Host "    [1]  Undo one file   -- Revert a single script back to its last save" -ForegroundColor Yellow
-    Write-Host "    [2]  Undo last save  -- Remove the last save (your files stay on disk)" -ForegroundColor Yellow
-    Write-Host "    [3]  Jump to old version -- Open any old save or snapshot (safe)" -ForegroundColor Yellow
+    Write-Host "    [1]  Undo one file         -- Revert a single script back to last save" -ForegroundColor Yellow
+    Write-Host "    [2]  Undo last save        -- Remove the last save record (keep files)" -ForegroundColor Yellow
+    Write-Host "    [3]  Jump to old version   -- Open any old save or snapshot safely" -ForegroundColor Yellow
+    Write-Host "    [4]  Reset to last save    -- Discard all current uncommitted changes" -ForegroundColor Red
     Write-Host "    [0]  Back" -ForegroundColor DarkGray
     $choice = Prompt-Input "Your choice"
 
@@ -490,7 +576,6 @@ function Menu-Revert {
             Write-Host ""
             $file = Prompt-Input "Paste the file path exactly as shown above"
             if ($file -eq "" -or $file -eq $null) { return }
-            # strip leading status characters if user copies them
             $file = $file -replace '^[MADRCU? ]+', ''
             git checkout HEAD -- $file 2>$null
             Write-Host ""
@@ -502,7 +587,7 @@ function Menu-Revert {
             if (Confirm "Remove the last save record? Your file changes will NOT be lost.") {
                 git reset --soft HEAD~1 2>$null
                 Write-Host ""
-                Write-Host "  Last save removed. Files are unchanged." -ForegroundColor Green
+                Write-Host "  Last save removed. Files are unchanged on disk." -ForegroundColor Green
             } else {
                 Write-Host "  Cancelled." -ForegroundColor DarkGray
             }
@@ -517,21 +602,14 @@ function Menu-Revert {
                 Write-Host ("    " + $_.PadRight(32) + $d) -ForegroundColor Cyan
             }
             Write-Host ""
-            Write-Host "  Or get a Save ID from the Save History menu (e.g. 59cee33)." -ForegroundColor DarkGray
+            Write-Host "  Or enter a Save ID from History (e.g. eafc819)." -ForegroundColor DarkGray
             $target = Prompt-Input "Enter snapshot name or save ID"
             if ($target -eq "" -or $target -eq $null) { return }
-            if (Confirm "Open '$target' in a restore branch?") {
-                $safeName = ($target -replace '[^a-zA-Z0-9]', '-').ToLower().TrimEnd('-')
-                $restoreBranch = "restore/$safeName"
-                git checkout -b $restoreBranch $target 2>$null | Out-Null
-                Write-Host ""
-                Write-Host "  You are now on : $restoreBranch" -ForegroundColor Green
-                Write-Host "  Viewing project at : $target" -ForegroundColor Green
-                Write-Host ""
-                Write-Host "  To return to active development:   git checkout develop" -ForegroundColor Yellow
-            } else {
-                Write-Host "  Cancelled." -ForegroundColor DarkGray
-            }
+            Safe-CheckoutRestoreBranch $target "Manual target $target"
+            Press-Any
+        }
+        "4" {
+            Safe-DiscardAllUncommittedChanges
             Press-Any
         }
         default { return }
@@ -539,7 +617,93 @@ function Menu-Revert {
 }
 
 # ============================================================
-# LAUNCH
+# COMMAND DISPATCHER (CLI & INTERACTIVE)
 # ============================================================
 
-Show-MainMenu
+if ($Command) {
+    switch -Regex ($Command.ToLower()) {
+        "^(save|commit)$" {
+            $msg = if ($Arguments) { $Arguments -join " " } else { "Quick save on $(Get-Date -Format 'yyyy-MM-dd HH:mm')" }
+            git add -A
+            git commit -m $msg
+            Write-Host "Saved: $msg" -ForegroundColor Green
+        }
+        "^status$" {
+            git status
+        }
+        "^history$" {
+            git log --oneline -20
+        }
+        "^(snapshot|tag)$" {
+            $name = if ($Arguments) { $Arguments[0] } else { Prompt-Input "Snapshot name" }
+            if ($name) {
+                $name = ($name -replace '[^a-zA-Z0-9]', '-').ToLower().TrimEnd('-')
+                git add -A 2>$null
+                git commit -m "snapshot: $name" --allow-empty 2>$null | Out-Null
+                git tag -a $name -m "Manual snapshot: $name" 2>$null
+                Write-Host "Snapshot created: $name" -ForegroundColor Green
+            }
+        }
+        "^snapshots$" {
+            git tag --sort=-creatordate -n1
+        }
+        "^(new-feature|feature)$" {
+            $name = if ($Arguments) { $Arguments[0] } else { Prompt-Input "Feature name" }
+            if ($name) {
+                $name = ($name -replace '[^a-zA-Z0-9]', '-').ToLower().TrimEnd('-')
+                git checkout -b "feature/$name"
+                Write-Host "Created branch: feature/$name" -ForegroundColor Green
+            }
+        }
+        "^finish-feature$" {
+            $name = if ($Arguments) { $Arguments[0] } else { (git branch --show-current) }
+            git checkout develop
+            git merge --no-ff $name -m "feat: merge $name into develop"
+            Write-Host "Merged $name into develop" -ForegroundColor Green
+        }
+        "^revert-file$" {
+            $file = if ($Arguments) { $Arguments[0] } else { Prompt-Input "File path" }
+            if ($file) {
+                $file = $file -replace '^[MADRCU? ]+', ''
+                git checkout HEAD -- $file
+                Write-Host "Reverted: $file" -ForegroundColor Green
+            }
+        }
+        "^revert-last$" {
+            git reset --soft HEAD~1
+            Write-Host "Reverted last save record (files preserved on disk)." -ForegroundColor Green
+        }
+        "^(revert-to|restore)$" {
+            $target = if ($Arguments) { $Arguments[0] } else { Prompt-Input "Snapshot name or commit hash" }
+            if ($target) {
+                Safe-CheckoutRestoreBranch $target "Target $target"
+            }
+        }
+        "^(reset-hard|discard-changes)$" {
+            Safe-DiscardAllUncommittedChanges
+        }
+        "^push$" {
+            $branch = git branch --show-current
+            git push origin $branch --follow-tags
+        }
+        "^pull$" {
+            $branch = git branch --show-current
+            git pull origin $branch
+        }
+        default {
+            Write-Host "Unknown command: $Command" -ForegroundColor Red
+            Write-Host "Available CLI commands:" -ForegroundColor Yellow
+            Write-Host "  .\kart-git.ps1 save 'message'       - Save all current work" -ForegroundColor DarkGray
+            Write-Host "  .\kart-git.ps1 status              - Check git status" -ForegroundColor DarkGray
+            Write-Host "  .\kart-git.ps1 history             - View recent saves" -ForegroundColor DarkGray
+            Write-Host "  .\kart-git.ps1 snapshot <name>     - Create a named milestone" -ForegroundColor DarkGray
+            Write-Host "  .\kart-git.ps1 snapshots          - List all milestones" -ForegroundColor DarkGray
+            Write-Host "  .\kart-git.ps1 revert-to <target>  - Open any previous save cleanly" -ForegroundColor DarkGray
+            Write-Host "  .\kart-git.ps1 reset-hard          - Wipe uncommitted changes and reload last save" -ForegroundColor DarkGray
+            Write-Host "  .\kart-git.ps1 revert-file <path>  - Restore single file" -ForegroundColor DarkGray
+            Write-Host "  .\kart-git.ps1 push / pull         - Sync with GitHub" -ForegroundColor DarkGray
+        }
+    }
+} else {
+    Show-MainMenu
+}

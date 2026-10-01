@@ -1,4 +1,4 @@
-# Krash Kart Root Cause & Resolution Log
+# RESEARCH_ML Root Cause & Resolution Log
 
 ## 1. Single-Player Lap Trigger Ignition Failure
 
@@ -123,3 +123,65 @@
 * **Root Cause Analysis**: `LapObject.cs` resides in `KartGame.asmdef`, which does not have a compile-time assembly reference to `KartGame.AI.asmdef`.
 * **Resolution Strategy**: Replaced direct generic type query with decoupled string-based component lookup `kart.GetComponent("KartAgent") != null`.
 * **Verification Method**: Verified zero compiler errors via Unity MCP and clean assembly build.
+
+## 16. Console Exception Flooding in Offline Quick Drive Testing Scene
+
+* **Issue Description**: Entering Play Mode in the generated `QuickDrive.unity` testing scene flooded the console with multiple recurring exceptions and warnings:
+  1. `NullReferenceException` in `AudioUtility.SetMasterVolume` (blocking `GameFlowManager.Start()` race loop).
+  2. Continuous `UnassignedReferenceException` in `KartAgent.OnActionReceived` (`Colliders` unassigned).
+  3. ML-Agents observation padding warning: `Fewer observations (1) made than vector observation size (12)`.
+  4. PhysX error: `Setting angular velocity of a kinematic body is not supported` in `ArcadeKart.MoveVehicle` / `GroundAirbourne`.
+  5. `ManualPlayerPerformanceLogger`: `No GameObjects found with 'LaneDivider' tag`.
+  6. `ArgumentNullException: Value cannot be null (Parameter: path1)` in `ManualPlayerPerformanceLogger.SaveResults`.
+  7. `HexSpell: Missing HexNetworkHelper on this kart`.
+* **Root Cause Analysis**:
+  1. `AudioUtility.SetMasterVolume` unconditionally accessed `m_AudioManager.audioMixer` without null checking when no `AudioManager` was present in the scene.
+  2. The starter track prefab (`OvalTrack.prefab`) lacked checkpoint colliders, leaving `KartAgent.Colliders` null. In `CollectObservations()`, missing colliders triggered an early exit after only 1 observation instead of 12, causing observation padding warnings. In `OnActionReceived()`, indexing `Colliders` threw exceptions every physics frame.
+  3. Player and Agent kart prefabs carried multiplayer network components (`NetworkObject`, `NetworkTransform`, `NetworkRigidbody`, `NetworkedArcadeKart`) that defaulted or forced `rb.isKinematic = true` when Netcode was inactive, triggering PhysX errors when `ArcadeKart` applied velocities.
+  4. No track colliders or lane dividers were tagged `LaneDivider` in the generated scene.
+  5. `ManualPlayerPerformanceLogger` initialized `actualLogPath` in `Start()`, but `OnDisable()` called `SetFinished()` during scene unload/stop before or without a valid path, passing null to `Path.Combine`.
+  6. `HexSpell.OnCast` lacked an offline single-player fallback for when `HexNetworkHelper` was stripped.
+* **Resolution Strategy**:
+  1. **Audio Guarding**: Added null checks for `m_AudioManager` and `m_AudioManager.audioMixer` across all methods in `AudioUtility.cs`, and ensured an `AudioManager` object is spawned by `QuickDriveSetup.cs`.
+  2. **Track & Checkpoints**: Updated `QuickDriveSetup.cs` to use `OvalTrack_Training.prefab`, automatically extract its 10 `Agent Checkpoints` colliders, tag them `LaneDivider`, and assign them to `KartAgent.Colliders`.
+  3. **Agent Robustness**: In `KartAgent.cs`, added auto-detection of `Agent Checkpoints` in `Awake()`, guarded `CollectObservations()` to always emit all 12 vector observations even if checkpoints are absent, and guarded `OnActionReceived()`.
+  4. **Kinematic & Netcode Stripping**: Updated `PrepareKartForOffline()` in `QuickDriveSetup.cs` to strip Netcode components in reverse dependency order (`Custom NetworkBehaviours` -> `NetworkRigidbody` -> `NetworkTransform` -> `NetworkObject`), and explicitly set `rb.isKinematic = false` and `useGravity = true`.
+  5. **Kinematic Velocity Guards**: Guarded `ArcadeKart.GroundAirbourne` and `ArcadeKart.MoveVehicle` angular orientation with `!Rigidbody.isKinematic`.
+  6. **Logger Path Initialization**: Moved `SetupLoggingDirectory()` invocation to `Awake()` in `ManualPlayerPerformanceLogger.cs` and added a null fallback check in `SaveResults()`.
+  7. **Spell Offline Fallback**: Added a local target query fallback in `HexSpell.cs` for offline play when `HexNetworkHelper` is null.
+* **Verification Method**: Generated a fresh `QuickDrive.unity` scene via `Krash Kart/Quick Drive Setup`, executed Play Mode in Unity Editor, allowed the race loop to start and run, and verified through Unity MCP console logs that zero errors and zero unassigned reference warnings are produced.
+
+## 17. Drift Mechanic "turnInputAbs" Compilation Error
+
+* **Issue Description**: Injecting the original true drift mechanics removed the `float turnInputAbs = Mathf.Abs(turnInput);` declaration in `ArcadeKart.cs`, causing `error CS0103: The name 'turnInputAbs' does not exist in the current context`.
+* **Root Cause Analysis**: The `multi_replace_file_content` edit inadvertently swallowed the variable declaration during a chunk replacement that updated the `m_DriftTurningPower` logic below it.
+* **Resolution Strategy**: Restored the `float turnInputAbs = Mathf.Abs(turnInput);` declaration exactly where it was removed.
+* **Verification Method**: Verified error-free compilation and successful entry into Unity Play Mode.
+
+## 18. Read-Only Property Assignment and Duplicate Compilation in KartDrift Separation
+
+* **Issue Description**: C# compilation failed with `error CS0200: Property or indexer 'ArcadeKart.WantsToDrift' cannot be assigned to -- it is read only` at lines 333 and 361 in `ArcadeKart.cs`, alongside warning `CSC : warning CS2002: Source file 'KartDrift.cs' specified multiple times`.
+* **Root Cause Analysis**:
+  1. `WantsToDrift` in `ArcadeKart.cs` was refactored into a read-only computed property delegating to `DriftController.WantsToDrift`, but legacy code in `GatherInputs()` was still attempting to write `WantsToDrift = false;` and `WantsToDrift = Input.Brake && ...`.
+  2. `KartDrift.cs` was registered twice because Unity automatically discovered the new file and inserted it into `KartGame.csproj` while an explicit `<Compile>` line had also been manually appended.
+* **Resolution Strategy**:
+  1. Removed obsolete assignments to `WantsToDrift` in `ArcadeKart.GatherInputs()`, allowing `KartDrift` to autonomously determine drift eligibility based on velocity and steering thresholds.
+  2. Removed the duplicate `<Compile Include="Assets\Karting\Scripts\KartSystems\KartDrift.cs" />` entry from `KartGame.csproj`.
+* **Verification Method**: Executed `dotnet build "ML TEST.sln"`. Verified 0 errors and a clean build.
+
+## 19. "kart-git.ps1" Silent Revert Failure and Working Tree Desynchronization
+
+* **Issue Description**: Running `.\kart-git.ps1 revert-to <tag>` or using the interactive menu failed to revert the project to previous snapshots or saves. The script reported successful restoration, but the project remained on the modified branch and missing prefab references (`KartClassic_Player.prefab`) left the project in a broken state.
+* **Root Cause Analysis**:
+  1. `kart-git.ps1` lacked a PowerShell `param(...)` block, causing all CLI argument invocations (`save`, `revert-to`, `status`) to be silently ignored and always loading the interactive menu.
+  2. Inside `Menu-Revert` and `Menu-History`, Git commands piped errors to null: `git checkout -b $restoreBranch $target 2>$null | Out-Null`. Because the working tree contained unstaged/dirty files that conflicted with the target commit, Git aborted the checkout. Because stderr was silenced, the script falsely displayed a green "Restored" message while leaving the working copy untouched.
+  3. `Assets/Karting/Prefabs/KartClassic/KartClassic_Player.prefab` and its `.meta` file were inadvertently deleted in the working directory during experimental file movement, breaking prefab links in test scenes.
+* **Resolution Strategy**:
+  1. Restored `KartClassic_Player.prefab` and `KartClassic_Player.prefab.meta` directly from Git HEAD (`git checkout HEAD -- Assets/Karting/Prefabs/KartClassic/KartClassic_Player.prefab*`).
+  2. Refactored `kart-git.ps1` with robust parameter handling (`param([string]$Command, [string]$Arg1)`), allowing both direct CLI usage and interactive menu execution.
+  3. Implemented `Safe-CheckoutRestoreBranch`: detects dirty working trees before attempting any branch creation or checkout. Provides interactive choices to stash (`[S]`), cleanly discard (`[D]`), or cancel (`[C]`). Removed error suppression so Git failure messages are surfaced to the developer.
+  4. Added `Safe-DiscardAllUncommittedChanges` command (`.\kart-git.ps1 reset-hard` or option `[4]` in the menu) with an explicit confirmation safeguard.
+* **Verification Method**:
+  1. Restored `KartClassic_Player.prefab` and verified scene references in Unity.
+  2. Verified `.\kart-git.ps1 status` CLI functionality.
+  3. Ran Unity MCP `read_console` and confirmed 0 compilation errors and 0 runtime exceptions.
