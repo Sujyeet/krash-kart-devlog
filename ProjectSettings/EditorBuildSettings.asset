@@ -31,5 +31,8 @@ EditorBuildSettings:
     guid: d6801f2e59f75ee4b919cf5da4e48e3b
   - enabled: 1
     path: Assets/Karting/Scenes/Track2.unity
-    guid: 00000000000000000000000000000000
+    guid: 94e52a0a0cc54bc4da422127d2012dd5
+  - enabled: 1
+    path: Assets/Karting/Scenes/QuickDrive.unity
+    guid: 06e44596f2d6a0e429ee9ed1d88cdf56
   m_configObjects: {}
