@@ -898,6 +898,30 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 5154644605909890485}
+    - targetCorrespondingSourceObject: {fileID: 4895846115232909980, guid: cba6236a3ca88a54081cc989c4f0c08a,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5635291841840167954}
+    - targetCorrespondingSourceObject: {fileID: 4895846115232909980, guid: cba6236a3ca88a54081cc989c4f0c08a,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6284917392817401923}
+    - targetCorrespondingSourceObject: {fileID: 4895846115232909980, guid: cba6236a3ca88a54081cc989c4f0c08a,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7382910482910482019}
+    - targetCorrespondingSourceObject: {fileID: 4895846115232909980, guid: cba6236a3ca88a54081cc989c4f0c08a,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5183920194810294819}
+    - targetCorrespondingSourceObject: {fileID: 4895846115232909980, guid: cba6236a3ca88a54081cc989c4f0c08a,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4918204819204810294}
+    - targetCorrespondingSourceObject: {fileID: 4895846115232909980, guid: cba6236a3ca88a54081cc989c4f0c08a,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3829104829104820192}
   m_SourcePrefab: {fileID: 100100000, guid: cba6236a3ca88a54081cc989c4f0c08a, type: 3}
 --- !u!136 &4355458285952109356 stripped
 CapsuleCollider:
@@ -995,7 +1019,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1711415929
+  GlobalObjectIdHash: 3910122561
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -1120,8 +1144,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spellSlot1: {fileID: 7047551463157847880}
   spellSlot2: {fileID: 1477641017711073138}
-  spellSlot3: {fileID: 456910880938741049}
-  spellSlot4: {fileID: 5513458699019818325}
+  spellSlot3: {fileID: 5635291841840167954}
+  spellSlot4: {fileID: 7382910482910482019}
+  spellSlotSpace: {fileID: 4918204819204810294}
+  spellSlotTab: {fileID: 3829104829104820192}
   slot1CooldownFill: {fileID: 0}
   slot1KeyLabel: {fileID: 0}
   slot2CooldownFill: {fileID: 0}
@@ -1130,6 +1156,10 @@ MonoBehaviour:
   slot3KeyLabel: {fileID: 0}
   slot4CooldownFill: {fileID: 0}
   slot4KeyLabel: {fileID: 0}
+  spaceCooldownFill: {fileID: 0}
+  spaceKeyLabel: {fileID: 0}
+  tabCooldownFill: {fileID: 0}
+  tabKeyLabel: {fileID: 0}
 --- !u!114 &7047551463157847880
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1271,6 +1301,115 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a32cebd0cc26834c9baf702c5ca3b56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &5635291841840167954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4355458286913933503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 795e6819871cefe41a26adf2d63d837d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spellName: EnergyShield
+  description: Deploys a defensive barrier that absorbs 1 hostile projectile, hex,
+    or mine.
+  icon: {fileID: 0}
+  cooldown: 2.03
+  shieldDuration: 6
+  customShieldVFXPrefab: {fileID: 0}
+--- !u!114 &6284917392817401923
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4355458286913933503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68fe7d42813589b41890cd36450f6841, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  customBubblePrefab: {fileID: 0}
+  bubbleCenterOffset: {x: 0, y: 0.6, z: 0}
+  breakVFX: {fileID: 0}
+  breakSFX: {fileID: 0}
+--- !u!114 &7382910482910482019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4355458286913933503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a38ef2b81244ab98650df448261947b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spellName: BlinkBoost
+  description: Instant short-range forward warp through space with an emergence
+    speed boost.
+  icon: {fileID: 0}
+  cooldown: 4
+  blinkDistance: 14
+  postBlinkSpeedBoost: 6
+  boostDuration: 1.8
+  collisionRadius: 0.9
+  skinMargin: 0.5
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!114 &5183920194810294819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4355458286913933503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85b1496a7d9046c8b9280d52481075bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &4918204819204810294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4355458286913933503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61e938f37b1248a3aa937cb01844917a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spellName: PhaseShift
+  description: Turns the kart intangible and manifests a glowing holographic wireframe.
+  icon: {fileID: 0}
+  cooldown: 5
+  phaseDuration: 1.5
+--- !u!114 &3829104829104820192
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4355458286913933503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59e18b2c3d4e5f60718293a4b5c6d7e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spellName: GravityPull
+  description: Pulls opposing karts in a 16m radius towards your position with a space distortion accretion vortex.
+  icon: {fileID: 0}
+  cooldown: 6
+  pullRadius: 16
+  pullDuration: 2.5
+  pullStrength: 38
+  verticalDamping: 0.5
 --- !u!146 &4355458286981845235 stripped
 WheelCollider:
   m_CorrespondingSourceObject: {fileID: 4895846115166112464, guid: cba6236a3ca88a54081cc989c4f0c08a,

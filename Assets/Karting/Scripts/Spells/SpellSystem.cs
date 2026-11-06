@@ -8,10 +8,12 @@ namespace KartGame.KartSystems
     public class SpellSystem : MonoBehaviour
     {
         [Header("Spell Slots")]
-        public BaseSpell spellSlot1; // Q
-        public BaseSpell spellSlot2; // E
-        public BaseSpell spellSlot3; // R
-        public BaseSpell spellSlot4; // F
+        public BaseSpell spellSlot1; // I
+        public BaseSpell spellSlot2; // J
+        public BaseSpell spellSlot3; // K
+        public BaseSpell spellSlot4; // L
+        public BaseSpell spellSlotSpace; // Space (Phase Shift / Quick Defensive)
+        public BaseSpell spellSlotTab; // Tab (Gravity Pull / Crowd Control)
 
         [Header("HUD - Slot 1 (I)")]
         public Image slot1CooldownFill;
@@ -29,6 +31,14 @@ namespace KartGame.KartSystems
         public Image slot4CooldownFill;
         public TextMeshProUGUI slot4KeyLabel;
 
+        [Header("HUD - Space Slot")]
+        public Image spaceCooldownFill;
+        public TextMeshProUGUI spaceKeyLabel;
+
+        [Header("HUD - Tab Slot")]
+        public Image tabCooldownFill;
+        public TextMeshProUGUI tabKeyLabel;
+
         private ArcadeKart kart;
         private NetworkObject networkObject;
 
@@ -44,6 +54,8 @@ namespace KartGame.KartSystems
             if (slot2KeyLabel) slot2KeyLabel.text = "J";
             if (slot3KeyLabel) slot3KeyLabel.text = "K";
             if (slot4KeyLabel) slot4KeyLabel.text = "L";
+            if (spaceKeyLabel) spaceKeyLabel.text = "SPACE";
+            if (tabKeyLabel) tabKeyLabel.text = "TAB";
         }
 
         void Update()
@@ -65,10 +77,18 @@ namespace KartGame.KartSystems
             if (Input.GetKeyDown(KeyCode.L))
                 TryCastSpell(spellSlot4);
 
+            if (Input.GetKeyDown(KeyCode.Space))
+                TryCastSpell(spellSlotSpace);
+
+            if (Input.GetKeyDown(KeyCode.Tab))
+                TryCastSpell(spellSlotTab);
+
             UpdateCooldownUI(spellSlot1, slot1CooldownFill);
             UpdateCooldownUI(spellSlot2, slot2CooldownFill);
             UpdateCooldownUI(spellSlot3, slot3CooldownFill);
             UpdateCooldownUI(spellSlot4, slot4CooldownFill);
+            UpdateCooldownUI(spellSlotSpace, spaceCooldownFill);
+            UpdateCooldownUI(spellSlotTab, tabCooldownFill);
         }
 
         void TryCastSpell(BaseSpell spell)

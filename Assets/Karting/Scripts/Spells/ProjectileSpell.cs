@@ -26,13 +26,20 @@ namespace KartGame.KartSystems
             Quaternion spawnRot = kart.transform.rotation * Quaternion.Euler(upwardPitch, 0f, 0f);
 
             NetworkObject kartNetObj = kart.GetComponent<NetworkObject>();
-            if (kartNetObj == null)
+            if (kartNetObj != null && NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
             {
-                Debug.LogWarning("ProjectileSpell: Kart has no NetworkObject.");
-                return;
+                helper.SpawnProjectileServerRpc(spawnPos, spawnRot, kartNetObj.NetworkObjectId);
             }
-
-            helper.SpawnProjectileServerRpc(spawnPos, spawnRot, kartNetObj.NetworkObjectId);
+            else
+            {
+                // Single-player / offline fallback
+                GameObject projectile = Instantiate(helper.projectilePrefab, spawnPos, spawnRot);
+                SpellProjectile projectileScript = projectile.GetComponent<SpellProjectile>();
+                if (projectileScript != null && kartNetObj != null)
+                {
+                    projectileScript.SetOwner(kartNetObj.NetworkObjectId);
+                }
+            }
         }
     }
 }

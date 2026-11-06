@@ -58,6 +58,28 @@ namespace KartGame.KartSystems
                 return;
             }
 
+            // Check if target kart is phased / intangible
+            KartPhaseShift targetPhase = bestTarget.GetComponent<KartPhaseShift>();
+            if (targetPhase == null)
+                targetPhase = bestTarget.GetComponentInParent<KartPhaseShift>();
+
+            if (targetPhase != null && targetPhase.IsPhased)
+            {
+                Debug.Log($"Hex: Target {bestTarget.name} is phased / intangible. Hex avoided!");
+                return;
+            }
+
+            // Check if target kart has an active shield
+            KartShield targetShield = bestTarget.GetComponent<KartShield>();
+            if (targetShield == null)
+                targetShield = bestTarget.GetComponentInParent<KartShield>();
+
+            if (targetShield != null && targetShield.TryBlockHit())
+            {
+                Debug.Log($"Hex: Target {bestTarget.name}'s shield absorbed the Hex!");
+                return;
+            }
+
             NetworkObject targetNetObj = bestTarget.GetComponent<NetworkObject>();
 
             // Human / networked player target

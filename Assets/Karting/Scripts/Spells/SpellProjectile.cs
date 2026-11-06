@@ -34,7 +34,7 @@ namespace KartGame.KartSystems
 
         void Update()
         {
-            if (!IsServer)
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening && !IsServer)
                 return;
 
             transform.position += transform.forward * speed * Time.deltaTime;
@@ -46,56 +46,109 @@ namespace KartGame.KartSystems
 
             if (NetworkObject != null && NetworkObject.IsSpawned)
                 NetworkObject.Despawn();
+            else
+                Destroy(gameObject);
         }
 
         void OnTriggerEnter(Collider other)
-{
-    if (!IsServer || hasHit)
-        return;
+        {
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening && !IsServer)
+                return;
 
-    ArcadeKart kart = other.GetComponent<ArcadeKart>();
-    if (kart == null)
-        kart = other.GetComponentInParent<ArcadeKart>();
+            if (hasHit)
+                return;
 
-    if (kart != null)
-    {
-        NetworkObject kartNetObj = kart.GetComponent<NetworkObject>();
-        if (kartNetObj == null)
-            kartNetObj = kart.GetComponentInParent<NetworkObject>();
+            ArcadeKart kart = other.GetComponent<ArcadeKart>();
+            if (kart == null)
+                kart = other.GetComponentInParent<ArcadeKart>();
 
-        if (kartNetObj != null && kartNetObj.NetworkObjectId == ownerClientId)
-            return;
+            if (kart != null)
+            {
+                NetworkObject kartNetObj = kart.GetComponent<NetworkObject>();
+                if (kartNetObj == null)
+                    kartNetObj = kart.GetComponentInParent<NetworkObject>();
 
-        hasHit = true;
+                if (kartNetObj != null && kartNetObj.NetworkObjectId == ownerClientId && ownerClientId != 0)
+                    return;
 
-        Vector3 launchForce =
-            transform.forward * forwardForce +
-            transform.right * sideForce +
-            Vector3.up * upwardForce;
+                // Check if target kart is phased / intangible
+                KartPhaseShift phaseShift = kart.GetComponent<KartPhaseShift>();
+                if (phaseShift == null)
+                    phaseShift = kart.GetComponentInParent<KartPhaseShift>();
 
-        if (kartNetObj != null && kartNetObj.IsSpawned)
-            ApplyLaunchClientRpc(kartNetObj.NetworkObjectId, launchForce);
-        else
-            kart.ApplyLaunch(launchForce);
+                if (phaseShift != null && phaseShift.IsPhased)
+                {
+                    // Intangible: projectile phases right through kart without detonation
+                    return;
+                }
 
-        if (hitVFX != null)
-            SpawnHitVFXClientRpc(transform.position);
+                hasHit = true;
 
-        if (NetworkObject != null && NetworkObject.IsSpawned)
-            NetworkObject.Despawn();
+                // Check if the target kart has an active shield
+                KartShield shield = kart.GetComponent<KartShield>();
+                if (shield == null)
+                    shield = kart.GetComponentInParent<KartShield>();
 
-        return;
-    }
+                if (shield != null && shield.TryBlockHit())
+                {
+                    if (hitVFX != null)
+                    {
+                        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+                            SpawnHitVFXClientRpc(transform.position);
+                        else
+                            Destroy(Instantiate(hitVFX, transform.position, Quaternion.identity), 2f);
+                    }
 
-    // Hit environment / wall / obstacle
-    hasHit = true;
+                    if (NetworkObject != null && NetworkObject.IsSpawned)
+                        NetworkObject.Despawn();
+                    else
+                        Destroy(gameObject);
 
-    if (hitVFX != null)
-        SpawnHitVFXClientRpc(transform.position);
+                    return;
+                }
 
-    if (NetworkObject != null && NetworkObject.IsSpawned)
-        NetworkObject.Despawn();
-}
+                Vector3 launchForce =
+                    transform.forward * forwardForce +
+                    transform.right * sideForce +
+                    Vector3.up * upwardForce;
+
+                if (kartNetObj != null && kartNetObj.IsSpawned)
+                    ApplyLaunchClientRpc(kartNetObj.NetworkObjectId, launchForce);
+                else
+                    kart.ApplyLaunch(launchForce);
+
+                if (hitVFX != null)
+                {
+                    if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+                        SpawnHitVFXClientRpc(transform.position);
+                    else
+                        Destroy(Instantiate(hitVFX, transform.position, Quaternion.identity), 2f);
+                }
+
+                if (NetworkObject != null && NetworkObject.IsSpawned)
+                    NetworkObject.Despawn();
+                else
+                    Destroy(gameObject);
+
+                return;
+            }
+
+            // Hit environment / wall / obstacle
+            hasHit = true;
+
+            if (hitVFX != null)
+            {
+                if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+                    SpawnHitVFXClientRpc(transform.position);
+                else
+                    Destroy(Instantiate(hitVFX, transform.position, Quaternion.identity), 2f);
+            }
+
+            if (NetworkObject != null && NetworkObject.IsSpawned)
+                NetworkObject.Despawn();
+            else
+                Destroy(gameObject);
+        }
 
         [ClientRpc]
         void ApplyLaunchClientRpc(ulong targetNetworkObjectId, Vector3 force)

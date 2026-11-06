@@ -33,15 +33,6 @@ namespace KartGame.Multiplayer
         // Server-side list of finished client IDs in order
         private readonly List<ulong> finishOrder = new List<ulong>();
 
-        // Standings: Key = ClientId, Value = (Laps, Checkpoints, LastTime)
-        private struct PlayerProgress
-        {
-            public ulong clientId;
-            public int lap;
-            public int checkpoints;
-            public float lastUpdateTime;
-        }
-
         private void Awake()
         {
             if (Instance != null && Instance != this)

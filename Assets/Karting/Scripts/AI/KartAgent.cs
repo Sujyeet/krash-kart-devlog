@@ -174,13 +174,6 @@ namespace KartGame.AI
             rb.centerOfMass = new Vector3(0, -0.4f, 0.1f);
             ValidateCollisionSetup();
 
-            // TIME SCALE ADJUSTMENT 
-            if (Mathf.Approximately(Time.timeScale, 1.0f))
-            {
-                Time.timeScale = 1.3f;
-                Debug.Log("Game speed set to 1.5x by " + gameObject.name);
-            }
-
         }
 
         void ValidateCollisionSetup()

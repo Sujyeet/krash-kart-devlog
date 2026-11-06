@@ -123,3 +123,36 @@
 * **Root Cause Analysis**: `LapObject.cs` resides in `KartGame.asmdef`, which does not have a compile-time assembly reference to `KartGame.AI.asmdef`.
 * **Resolution Strategy**: Replaced direct generic type query with decoupled string-based component lookup `kart.GetComponent("KartAgent") != null`.
 * **Verification Method**: Verified zero compiler errors via Unity MCP and clean assembly build.
+
+## 16. Unassigned Struct Fields Compiler Warning (CS0649)
+
+* **Issue Description**: C# compilation output raised 4 warnings: `warning CS0649: Field 'MultiplayerRaceManager.PlayerProgress.clientId' (and lastUpdateTime, lap, checkpoints) is never assigned to, and will always have its default value 0`.
+* **Root Cause Analysis**: `MultiplayerRaceManager.cs` contained an obsolete internal struct definition `PlayerProgress` left over from an earlier standings prototype. The struct was never instantiated or referenced anywhere across the codebase.
+* **Resolution Strategy**: Removed the dead `PlayerProgress` struct definition from `MultiplayerRaceManager.cs`.
+* **Verification Method**: Ran `dotnet build KartGame.csproj` confirming 0 warnings and 0 errors across all assemblies.
+
+## 17. KeyNotFoundException during ShieldSpell ServerRpc Dispatch
+
+* **Issue Description**: Casting the Shield Spell triggered repeated runtime exceptions: `KeyNotFoundException: The given key 'KartGame.KartSystems.KartShield' was not present in the dictionary.` at `Unity.Netcode.NetworkBehaviour.__endSendServerRpc`.
+* **Root Cause Analysis**: Netcode for GameObjects (NGO) generates RPC metrics tracking tables (`__rpc_name_table`) and component index mappings (`m_NetworkBehaviourOrderDictionary`) when a `NetworkObject` initializes its pre-baked `NetworkBehaviour` list at spawn time (`InitializeVariables()`). Calling `gameObject.AddComponent<KartShield>()` dynamically at runtime on an already-spawned `NetworkObject` bypassed NGO lifecycle initialization. Consequently, invoking `ActivateShieldServerRpc()` attempted to look up `typeof(KartShield)` in `__rpc_name_table`, failing with `KeyNotFoundException`.
+* **Resolution Strategy**:
+  - Added `KartShield` component directly to `KartClassic_Player.prefab` (`fileID: 6284917392817401923`) and registered it in `m_AddedComponents`, ensuring NGO identifies, initializes, and tracks the component at prefab spawn.
+  - Implemented explicit Netcode lifecycle guards in `KartShield.cs`: verified `IsSpawned` alongside `NetworkManager.Singleton.IsListening` before dispatching ServerRpc or reading `NetworkVariable<bool>`.
+  - Added an offline fallback branch in `KartShield.ActivateShield` and `TryBlockHit` ensuring unspawned or dynamically instantiated instances operate locally without throwing Netcode exceptions.
+  - Overrode `NetworkBehaviour.OnDestroy()` properly with `base.OnDestroy()`.
+* **Verification Method**: Ran `dotnet build KartGame.csproj` with 0 warnings and 0 errors. Verified `KartShield` presence in prefab hierarchy and graceful network/local mode execution paths.
+
+## 18. Magenta Screen / Shader Compilation Failure on Gravity Pull Disk
+
+* **Issue Description**: Casting the Gravity Pull spell spawned a massive 32-meter solid magenta (`#FF00FF`) polygon across the track, completely occluding player vision and ground geometry.
+* **Root Cause Analysis**: 
+  - `GravityPullDisk.shader` used legacy Built-in Render Pipeline tags (`LightMode = ForwardBase`) and `#include "UnityCG.cginc"` inside a `CGPROGRAM` block.
+  - The project utilizes the Universal Render Pipeline (URP). URP does not execute `ForwardBase` passes and cannot resolve legacy Built-in include libraries in the forward loop, causing the shader to fail compilation at runtime.
+  - Furthermore, `GravityPullSpell.cs` spawned a flat 32m `PrimitiveType.Quad` directly on the track. When the shader failed, Unity applied the default unlit pink error shader to the entire 32m mesh, blinding the player.
+* **Resolution Strategy**:
+  - Eliminated the solid primitive quad approach entirely.
+  - Developed `GravityPullVisuals.cs` utilizing lightweight `LineRenderer` procedural geometry: concentric contracting neon rings, converging inward vector rays, and a compact singularity core ring at the kart chassis.
+  - Created `Assets/Karting/Shaders/GravityPullAdditive.shader` using native URP `HLSLPROGRAM`, `RenderPipeline = UniversalPipeline`, `LightMode = UniversalForward`, and `#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"`.
+  - Added material fallbacks to `Sprites/Default` ensuring fail-safe rendering in any pipeline mode.
+  - Completely removed the obsolete `GravityPullDisk.shader` file.
+* **Verification Method**: Verified via `dotnet build KartGame.csproj` with 0 warnings and 0 errors. Confirmed clean procedural line rendering and transparent additive blending without shader errors or solid screen occlusion.

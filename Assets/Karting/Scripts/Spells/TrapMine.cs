@@ -49,7 +49,47 @@ namespace KartGame.KartSystems
                 return;
             }
 
+            // Check if target kart is phased / intangible
+            KartPhaseShift phaseShift = kart.GetComponent<KartPhaseShift>();
+            if (phaseShift == null)
+                phaseShift = kart.GetComponentInParent<KartPhaseShift>();
+
+            if (phaseShift != null && phaseShift.IsPhased)
+            {
+                // Intangible: kart drives over mine without triggering it
+                return;
+            }
+
             triggered = true;
+
+            // Check if the target kart has an active shield
+            KartShield shield = kart.GetComponent<KartShield>();
+            if (shield == null)
+                shield = kart.GetComponentInParent<KartShield>();
+
+            if (shield != null && shield.TryBlockHit())
+            {
+                Debug.Log("[TrapMine] Mine impact absorbed by KartShield!");
+                if (explosionVFX != null)
+                {
+                    if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+                    {
+                        SpawnExplosionClientRpc(transform.position);
+                    }
+                    else
+                    {
+                        GameObject vfx = Instantiate(explosionVFX, transform.position, Quaternion.identity);
+                        Destroy(vfx, 2f);
+                    }
+                }
+
+                if (NetworkObject != null && NetworkObject.IsSpawned)
+                    NetworkObject.Despawn();
+                else
+                    Destroy(gameObject);
+
+                return;
+            }
 
             NetworkObject kartNetObj = kart.GetComponent<NetworkObject>();
             if (kartNetObj == null)

@@ -1,0 +1,42 @@
+# Racing Track Concrete Jersey Barrier (3m length x 0.7m width x 0.85m height)
+o Jersey_Barrier
+
+# Front Cross-Section Vertices (z = 1.5)
+v -0.35 0.00  1.50
+v  0.35 0.00  1.50
+v  0.35 0.08  1.50
+v  0.15 0.35  1.50
+v  0.10 0.85  1.50
+v -0.10 0.85  1.50
+v -0.15 0.35  1.50
+v -0.35 0.08  1.50
+
+# Back Cross-Section Vertices (z = -1.5)
+v -0.35 0.00 -1.50
+v  0.35 0.00 -1.50
+v  0.35 0.08 -1.50
+v  0.15 0.35 -1.50
+v  0.10 0.85 -1.50
+v -0.10 0.85 -1.50
+v -0.15 0.35 -1.50
+v -0.35 0.08 -1.50
+
+# Front Cap Faces
+f 1 2 3 8
+f 8 3 4 7
+f 7 4 5 6
+
+# Back Cap Faces
+f 9 16 11 10
+f 16 15 12 11
+f 15 14 13 12
+
+# Sloped Side & Top/Bottom Faces
+f 1 9 10 2
+f 2 10 11 3
+f 3 11 12 4
+f 4 12 13 5
+f 5 13 14 6
+f 6 14 15 7
+f 7 15 16 8
+f 8 16 9 1

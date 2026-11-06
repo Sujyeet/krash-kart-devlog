@@ -142,6 +142,25 @@ stateDiagram-v2
 * **Fix & Mitigation**: Destroy existing slot GameObject before instantiating and assigning the newly drafted spell.
 * **Why Not Alternatives**: Hardcoding 4 static spell components per kart was rejected to support draft gameplay.
 
+#### Feature 1.6: Defensive Energy Shield Spell & Procedural Barrier Architecture
+* **Description**: Castable defensive spell that deploys a glowing energy bubble around the kart, absorbing exactly one offensive impact (projectiles, deployed mines, or hexes) before dissipating.
+* **Suggested Phase**: Phase 1 (Core Mechanics & Physics Engine).
+* **Technical Design**:
+  ```csharp
+  public class KartShield : NetworkBehaviour
+  {
+      public NetworkVariable<bool> IsActive = new NetworkVariable<bool>(false);
+      public void ActivateShield(float duration) { ... }
+      public bool TryBlockHit() { ... }
+  }
+  ```
+  - `ShieldSpell.cs`: `BaseSpell` implementation triggering `KartShield.ActivateShield(shieldDuration)`.
+  - `ShieldBubble.cs`: Procedural runtime UV sphere generator with double-sided Fresnel glow shading (`ShieldBubble.shader`), ease-in scaling, breathing pulsation, and dynamic break dissolution.
+  - Offensive spell integration: `SpellProjectile.cs`, `TrapMine.cs`, and `HexNetworkHelper.cs` query `KartShield.TryBlockHit()` before applying negative gameplay modifiers.
+* **Potential Issues**: Child collider interference with kart Raycast wheel suspension causing PhysX jitter.
+* **Fix & Mitigation**: The procedural visual bubble contains no PhysX colliders; defensive queries are executed deterministically on the incoming offensive collider's trigger handler.
+* **Why Not Alternatives**: Static imported 3D sphere meshes were rejected to eliminate asset bundle bloat and ensure zero external modeling dependencies. Client-side hit resolution was rejected in favor of server-authoritative `TryBlockHit()` checks to prevent desynchronization in multiplayer matches.
+
 ---
 
 ### Phase 2: Production Netcode, Prediction & Room Customization
